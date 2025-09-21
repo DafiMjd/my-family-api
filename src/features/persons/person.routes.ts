@@ -8,17 +8,17 @@ import {
 const router = Router();
 
 // GET /api/persons - Get all persons
-router.get("/", personController.getAllPersons.bind(personController));
+router.get("/list", personController.getAllPersons.bind(personController));
 
 // GET /api/persons/count - Get person count
 router.get("/count", personController.getPersonCount.bind(personController));
 
 // GET /api/persons/living - Get living persons
-router.get("/living", personController.getLivingPersons.bind(personController));
+router.get("/living/list", personController.getLivingPersons.bind(personController));
 
 // GET /api/persons/deceased - Get deceased persons
 router.get(
-  "/deceased",
+  "/deceased/list",
   personController.getDeceasedPersons.bind(personController)
 );
 
