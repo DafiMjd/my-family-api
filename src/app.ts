@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 // Import routes
 import personRoutes from '@/features/persons/person.routes';
 import marriageRoutes from '@/features/marriage/marriage.routes';
+import familyRoutes from '@/features/family/family.routes';
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 // Routes
 app.use('/api/person', personRoutes);
 app.use('/api/marriage', marriageRoutes);
+app.use('/api/family', familyRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -55,8 +57,9 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`👤 Persons API: http://localhost:${PORT}/api/persons`);
+  console.log(`👤 Person API: http://localhost:${PORT}/api/person`);
   console.log(`💍 Marriage API: http://localhost:${PORT}/api/marriage`);
+  console.log(`👨‍👩‍👧‍👦 Family API: http://localhost:${PORT}/api/family`);
 });
 
 export default app;

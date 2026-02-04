@@ -7,39 +7,39 @@ import {
 
 const router = Router();
 
-// GET /api/persons - Get all persons
+// GET /api/person - Get all person
 router.get("/list", personController.getAllPersons.bind(personController));
 
-// GET /api/persons/count - Get person count
+// GET /api/person/count - Get person count
 router.get("/count", personController.getPersonCount.bind(personController));
 
-// GET /api/persons/living - Get living persons
+// GET /api/person/living - Get living person
 router.get("/living/list", personController.getLivingPersons.bind(personController));
 
-// GET /api/persons/deceased - Get deceased persons
+// GET /api/person/deceased - Get deceased person
 router.get(
   "/deceased/list",
   personController.getDeceasedPersons.bind(personController)
 );
 
-// GET /api/persons/one - Get person by ID (query param)
+// GET /api/person/one - Get person by ID (query param)
 router.get("/one", personController.getPersonById.bind(personController));
 
-// POST /api/persons - Create new person
+// POST /api/person - Create new person
 router.post(
   "/one",
   createPersonValidation,
   personController.createPerson.bind(personController)
 );
 
-// PUT /api/persons/one - Update person (query param)
+// PUT /api/person/one - Update person (query param)
 router.put(
   "/one",
   updatePersonValidation,
   personController.updatePerson.bind(personController)
 );
 
-// DELETE /api/persons/one - Delete person (query param)
+// DELETE /api/person/one - Delete person (query param)
 router.delete("/one", personController.deletePerson.bind(personController));
 
 export default router;

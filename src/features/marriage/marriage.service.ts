@@ -22,8 +22,7 @@ class MarriageService {
 
     // Validate that both persons exist
     const persons = await personRepository.findPersonsByIds(
-      personId1,
-      personId2
+      [personId1, personId2]
     );
     if (persons.length !== 2) {
       throw new Error("One or both persons not found");

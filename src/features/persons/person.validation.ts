@@ -1,8 +1,11 @@
-import { query, body } from "express-validator";
+import { query, body, ValidationChain } from "express-validator";
 
-const genderEnumValidation = body("gender", "gender must be MAN or WOMAN").isIn(
-  ["MAN", "WOMAN"]
-);
+// Base validators for top-level person fields
+const genderEnumValidation = body(
+  "gender",
+  "gender must be MAN or WOMAN"
+).isIn(["MAN", "WOMAN"]);
+
 const profilePictureUrlValidation = body(
   "profilePictureUrl",
   "profilePictureUrl must be a valid URL"
@@ -20,6 +23,29 @@ export const createPersonValidation = [
   body("birthDate", "birthDate must be a valid date").isDate(),
   body("deathDate", "deathDate must be a valid date").optional().isDate(),
   profilePictureUrlValidation,
+];
+
+// Reusable builder for nested person objects (e.g. family.father, family.children[*])
+export const buildCreatePersonValidation = (
+  prefix = ""
+): ValidationChain[] => [
+  body(`${prefix}name`, "name is required").exists(),
+  body(`${prefix}gender`, "gender is required").exists(),
+  body(
+    `${prefix}gender`,
+    "gender must be MAN or WOMAN"
+  ).isIn(["MAN", "WOMAN"]),
+  body(`${prefix}birthDate`, "birthDate is required").exists(),
+  body(`${prefix}birthDate`, "birthDate must be a valid date").isDate(),
+  body(`${prefix}deathDate`, "deathDate must be a valid date")
+    .optional()
+    .isDate(),
+  body(
+    `${prefix}profilePictureUrl`,
+    "profilePictureUrl must be a valid URL"
+  )
+    .optional()
+    .isURL(),
 ];
 
 export const updatePersonValidation = [

@@ -34,6 +34,16 @@ class PersonRepository {
     });
   }
 
+  async createMany(datas: CreatePersonRequest[]): Promise<Person[]> {
+    return await prisma.person.createManyAndReturn({
+      data: datas.map((person) => ({
+        ...person,
+        birthDate: new Date(person.birthDate),
+        deathDate: person.deathDate ? new Date(person.deathDate) : null,
+      })),
+    });
+  }
+
   async update(
     id: string,
     personData: UpdatePersonRequest
@@ -98,13 +108,10 @@ class PersonRepository {
     });
   }
 
-  async findPersonsByIds(
-    personId1: string,
-    personId2: string
-  ): Promise<Person[]> {
+  async findPersonsByIds(personIds: string[]): Promise<Person[]> {
     return await prisma.person.findMany({
       where: {
-        id: { in: [personId1, personId2] },
+        id: { in: personIds },
       },
     });
   }

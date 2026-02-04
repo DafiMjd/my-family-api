@@ -1,4 +1,4 @@
-import { body, param, query } from "express-validator";
+import { body, query } from "express-validator";
 
 export const marryValidation = [
   body("personId1").isUUID().withMessage("personId1 must be a valid UUID"),
