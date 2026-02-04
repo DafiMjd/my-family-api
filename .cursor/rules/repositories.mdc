@@ -1,0 +1,101 @@
+---
+description: Repository layer patterns for data access
+globs: src/features/**/*.repository.ts
+alwaysApply: false
+---
+
+# Repository Patterns
+
+Repositories handle all Prisma/database operations.
+
+## Structure
+
+```typescript
+import prisma from "@/shared/database/prisma";
+import { Type1, Type2 } from "@/shared/types/{feature}.types";
+
+class FeatureRepository {
+  async findAll(): Promise<Model[]> {
+    return await prisma.model.findMany();
+  }
+
+  async findById(id: string): Promise<Model | null> {
+    return await prisma.model.findUnique({ where: { id } });
+  }
+
+  async create(data: CreateRequest): Promise<Model> {
+    return await prisma.model.create({ data });
+  }
+
+  async update(id: string, data: UpdateRequest): Promise<Model | null> {
+    try {
+      return await prisma.model.update({ where: { id }, data });
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async delete(id: string): Promise<boolean> {
+    try {
+      await prisma.model.delete({ where: { id } });
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}
+
+export default new FeatureRepository();
+```
+
+## Rules
+
+Repositories MUST:
+- Import `prisma` from `@/shared/database/prisma`
+- Handle ONLY database operations
+- Return `null` for not found (instead of throwing)
+- Return `boolean` for delete operations
+- Convert date strings to Date objects before saving
+
+Repositories MUST NOT:
+- Contain business logic
+- Format response data
+- Handle HTTP concerns
+
+## Date Handling
+
+```typescript
+// ✅ Convert string dates to Date objects for Prisma
+async create(data: CreateRequest): Promise<Model> {
+  return await prisma.model.create({
+    data: {
+      ...data,
+      birthDate: new Date(data.birthDate),
+      dateField: data.dateField ? new Date(data.dateField) : null,
+    },
+  });
+}
+```
+
+## Error Handling
+
+```typescript
+// ✅ Return null on not found
+async update(id: string, data: UpdateRequest): Promise<Model | null> {
+  try {
+    return await prisma.model.update({ where: { id }, data });
+  } catch (error) {
+    return null;  // Not found or update failed
+  }
+}
+
+// ✅ Return boolean for delete
+async delete(id: string): Promise<boolean> {
+  try {
+    await prisma.model.delete({ where: { id } });
+    return true;
+  } catch (error) {
+    return false;  // Not found or delete failed
+  }
+}
+```

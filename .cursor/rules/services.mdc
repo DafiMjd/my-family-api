@@ -1,0 +1,86 @@
+---
+description: Service layer patterns and conventions
+globs: src/features/**/*.service.ts
+alwaysApply: false
+---
+
+# Service Patterns
+
+Services contain business logic and orchestrate repository calls.
+
+## Structure
+
+```typescript
+import repository from "./{feature}.repository";
+import { Type1, Type2 } from "@/shared/types/{feature}.types";
+
+class FeatureService {
+  async methodName(param: Type1): Promise<Type2> {
+    // Business logic here
+    const result = await repository.findSomething();
+    return this.mapToResponse(result);
+  }
+
+  private mapToResponse(data: DbModel): ApiResponse {
+    // Data transformation
+    return { ... };
+  }
+}
+
+export default new FeatureService();
+```
+
+## Responsibilities
+
+Services MUST:
+- Contain business logic and validation
+- Call repository methods for data access
+- Transform database models to API response types
+- Handle Date conversions (DB Date → ISO string)
+
+Services MUST NOT:
+- Access Prisma directly (use repository)
+- Handle HTTP request/response
+- Format error responses (throw errors instead)
+
+## Data Mapping
+
+```typescript
+// ✅ Convert dates to ISO strings for API responses
+private mapToResponse(entity: Entity): EntityResponse {
+  return {
+    ...entity,
+    createdAt: entity.createdAt.toISOString(),
+    updatedAt: entity.updatedAt.toISOString(),
+    dateField: entity.dateField?.toISOString() ?? null,
+  };
+}
+```
+
+## Example
+
+```typescript
+class PersonService {
+  async getPersonById(id: string): Promise<PersonResponse | null> {
+    const person = await personRepository.findById(id);
+    return person ? this.mapPersonToResponse(person) : null;
+  }
+
+  async createPerson(data: CreatePersonRequest): Promise<PersonResponse> {
+    const person = await personRepository.create(data);
+    return this.mapPersonToResponse(person);
+  }
+
+  private mapPersonToResponse(person: Person): PersonResponse {
+    return {
+      id: person.id,
+      name: person.name,
+      birthDate: person.birthDate.toISOString(),
+      createdAt: person.createdAt.toISOString(),
+      updatedAt: person.updatedAt.toISOString(),
+    };
+  }
+}
+
+export default new PersonService();
+```

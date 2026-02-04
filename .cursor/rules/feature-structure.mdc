@@ -1,0 +1,60 @@
+---
+description: Feature-based architecture structure and organization
+globs: src/features/**/*
+alwaysApply: false
+---
+
+# Feature Structure
+
+Each feature in `src/features/` follows a consistent layered architecture.
+
+## Required Files
+
+Every feature MUST have these 5 files:
+
+```
+src/features/{feature}/
+├── {feature}.controller.ts  # HTTP layer
+├── {feature}.service.ts     # Business logic
+├── {feature}.repository.ts  # Data access
+├── {feature}.routes.ts      # Route definitions
+└── {feature}.validation.ts  # Input validation
+```
+
+## Naming Convention
+
+- Use singular form for feature names (e.g., `person` not `persons`)
+- File names: `{feature}.{layer}.ts`
+- Class names: `{Feature}{Layer}` (e.g., `PersonController`)
+
+## Example Structure
+
+```typescript
+// person.controller.ts
+class PersonController { }
+export default new PersonController();
+
+// person.service.ts
+class PersonService { }
+export default new PersonService();
+
+// person.repository.ts
+class PersonRepository { }
+export default new PersonRepository();
+```
+
+## Type Definitions
+
+Types go in `src/shared/types/{feature}.types.ts`:
+
+- `{Feature}` - Database model type
+- `Create{Feature}Request` - Creation input
+- `Update{Feature}Request` - Update input
+- `{Feature}Response` - API response format
+
+## When Creating New Features
+
+1. Create all 5 required files
+2. Add types to `src/shared/types/`
+3. Follow existing patterns from `person` or `marriage` features
+4. Export singleton instances from controller/service/repository

@@ -1,0 +1,106 @@
+---
+description: Validation patterns using express-validator
+globs: src/features/**/*.validation.ts
+alwaysApply: false
+---
+
+# Validation Patterns
+
+Use express-validator for input validation middleware.
+
+## Structure
+
+```typescript
+import { body, query } from "express-validator";
+
+// Shared validation rules
+const emailValidation = body("email")
+  .isEmail()
+  .withMessage("Must be valid email");
+
+// Validation chains for endpoints
+export const createValidation = [
+  body("field1").exists().withMessage("field1 is required"),
+  body("field2").isString().withMessage("field2 must be string"),
+  body("field3").optional().isDate().withMessage("field3 must be date"),
+];
+
+export const updateValidation = [
+  body("field1").optional().withMessage("field1 is optional"),
+  body("field2").optional().isString().withMessage("field2 must be string"),
+];
+```
+
+## Common Validators
+
+```typescript
+// Required field
+body("name").exists().withMessage("name is required")
+
+// Optional field
+body("bio").optional().isString()
+
+// Date validation
+body("birthDate")
+  .exists().withMessage("birthDate is required")
+  .isDate().withMessage("birthDate must be valid date")
+
+// Enum validation
+body("gender")
+  .isIn(["MAN", "WOMAN"])
+  .withMessage("gender must be MAN or WOMAN")
+
+// URL validation
+body("profilePictureUrl")
+  .optional()
+  .isURL()
+  .withMessage("must be valid URL")
+
+// Query param validation
+query("id")
+  .exists()
+  .isUUID()
+  .withMessage("id must be valid UUID")
+```
+
+## Create vs Update
+
+```typescript
+// ✅ Create: fields are required
+export const createPersonValidation = [
+  body("name").exists(),
+  body("gender").exists(),
+  body("birthDate").exists().isDate(),
+  body("deathDate").optional().isDate(),
+];
+
+// ✅ Update: all fields optional
+export const updatePersonValidation = [
+  body("name").optional(),
+  body("gender").optional(),
+  body("birthDate").optional().isDate(),
+  body("deathDate").optional().isDate(),
+];
+```
+
+## Reusable Rules
+
+Extract common validations:
+
+```typescript
+// ✅ Define once, reuse in multiple chains
+const genderEnumValidation = body("gender")
+  .isIn(["MAN", "WOMAN"])
+  .withMessage("gender must be MAN or WOMAN");
+
+export const createValidation = [
+  body("name").exists(),
+  body("gender").exists(),
+  genderEnumValidation,  // Reuse
+];
+
+export const updateValidation = [
+  body("name").optional(),
+  genderEnumValidation,  // Reuse
+];
+```

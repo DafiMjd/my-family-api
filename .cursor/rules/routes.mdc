@@ -1,0 +1,97 @@
+---
+description: Route definition patterns and conventions
+globs: src/features/**/*.routes.ts
+alwaysApply: false
+---
+
+# Route Patterns
+
+Routes define Express endpoints and wire up controllers with validation.
+
+## Structure
+
+```typescript
+import { Router } from "express";
+import controller from "./{feature}.controller";
+import { validation1, validation2 } from "./{feature}.validation";
+
+const router = Router();
+
+// GET /api/{feature}/list
+router.get("/list", controller.getAll.bind(controller));
+
+// GET /api/{feature}/one
+router.get("/one", controller.getById.bind(controller));
+
+// POST /api/{feature}/one
+router.post(
+  "/one",
+  validation1,
+  controller.create.bind(controller)
+);
+
+// PUT /api/{feature}/one
+router.put(
+  "/one",
+  validation2,
+  controller.update.bind(controller)
+);
+
+// DELETE /api/{feature}/one
+router.delete("/one", controller.delete.bind(controller));
+
+export default router;
+```
+
+## Rules
+
+- Always `bind(controller)` when passing controller methods
+- Add validation middleware before controller
+- Use consistent URL patterns:
+  - `/list` for collections
+  - `/one` for single items (with query param `?id=`)
+  - `/count` for counts
+  - Custom routes: `/{status}/list` (e.g., `/living/list`)
+
+## URL Conventions
+
+```typescript
+// ✅ Collections
+router.get("/list", controller.getAll);
+
+// ✅ Single item (query param)
+router.get("/one", controller.getById);  // ?id=123
+
+// ✅ Actions on single item
+router.post("/one", validation, controller.create);
+router.put("/one", validation, controller.update);  // ?id=123
+router.delete("/one", controller.delete);  // ?id=123
+
+// ✅ Filtered collections
+router.get("/living/list", controller.getLiving);
+router.get("/deceased/list", controller.getDeceased);
+
+// ✅ Counts
+router.get("/count", controller.getCount);
+```
+
+## Validation Middleware
+
+```typescript
+// ✅ Place validation between route and controller
+router.post(
+  "/one",
+  createValidation,  // Validation middleware
+  controller.create.bind(controller)
+);
+```
+
+## Comments
+
+Add clear comments for each route:
+
+```typescript
+// GET /api/persons - Get all persons
+// GET /api/persons/one - Get person by ID
+// POST /api/persons/one - Create new person
+```

@@ -1,0 +1,96 @@
+---
+description: Type definition patterns and conventions
+globs: src/shared/types/**/*.types.ts
+alwaysApply: false
+---
+
+# Type Definition Patterns
+
+All feature types live in `src/shared/types/{feature}.types.ts`.
+
+## Required Types for Each Feature
+
+```typescript
+import { EnumType } from '@prisma/client';
+
+// 1. Database Model Type
+export type Feature = {
+  id: string;
+  field1: string;
+  field2: EnumType;
+  dateField: Date;
+  optionalField: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+// 2. Create Request (input for POST)
+export interface CreateFeatureRequest {
+  field1: string;
+  field2: EnumType;
+  dateField: Date | string;  // Accept both
+  optionalField?: string | null;
+}
+
+// 3. Update Request (input for PUT - all optional)
+export interface UpdateFeatureRequest {
+  field1?: string;
+  field2?: EnumType;
+  dateField?: Date | string;
+  optionalField?: string | null;
+}
+
+// 4. Response Type (API output - dates as strings)
+export interface FeatureResponse {
+  id: string;
+  field1: string;
+  field2: EnumType;
+  dateField: string;  // ISO string
+  optionalField: string | null;
+  createdAt: string;  // ISO string
+  updatedAt: string;  // ISO string
+}
+
+// Re-export Prisma enums
+export { EnumType };
+```
+
+## Date Handling
+
+```typescript
+// ✅ Database model: Date objects
+type Model = {
+  birthDate: Date;
+  deathDate: Date | null;
+};
+
+// ✅ Request: Accept both Date and string
+interface CreateRequest {
+  birthDate: Date | string;
+  deathDate?: Date | string | null;
+}
+
+// ✅ Response: ISO strings
+interface Response {
+  birthDate: string;
+  deathDate: string | null;
+}
+```
+
+## Naming Conventions
+
+- `{Feature}` - Database model
+- `Create{Feature}Request` - Creation input
+- `Update{Feature}Request` - Update input  
+- `{Feature}Response` - API response
+- `{Feature}ErrorResponse` - Error format (if custom)
+
+## Import Prisma Types
+
+```typescript
+// ✅ Import enums and types from Prisma
+import { Gender, RelationshipType } from '@prisma/client';
+
+// Re-export for convenience
+export { Gender, RelationshipType };
+```

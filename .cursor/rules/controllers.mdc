@@ -1,0 +1,97 @@
+---
+description: Controller layer patterns and conventions
+globs: src/features/**/*.controller.ts
+alwaysApply: false
+---
+
+# Controller Patterns
+
+Controllers handle HTTP request/response and delegate to services.
+
+## Structure
+
+```typescript
+import { Request, Response } from "express";
+import { validationResult } from "express-validator";
+
+class FeatureController {
+  async methodName(req: Request, res: Response): Promise<void> {
+    // Implementation
+  }
+}
+
+export default new FeatureController();
+```
+
+## Response Format
+
+All responses MUST use consistent structure:
+
+```typescript
+// ✅ Success Response
+res.status(200).json({
+  success: true,
+  data: result,
+  message?: "Optional message"
+});
+
+// ✅ Error Response
+res.status(400).json({
+  success: false,
+  error: "ERROR_CODE",
+  message: "Error description"
+});
+```
+
+## Validation Handling
+
+```typescript
+// ✅ Check validation results first
+const errors = validationResult(req);
+if (!errors.isEmpty()) {
+  res.status(400).json({
+    success: false,
+    error: "BAD_REQUEST",
+    message: errors.array()
+  });
+  return;
+}
+```
+
+## Error Handling
+
+```typescript
+// ✅ Wrap in try-catch
+try {
+  const result = await service.doSomething();
+  res.status(200).json({ success: true, data: result });
+} catch (error) {
+  res.status(500).json({
+    success: false,
+    error: "Failed to perform action",
+    message: error instanceof Error ? error.message : "Unknown error"
+  });
+}
+```
+
+## Query Parameters
+
+```typescript
+// ✅ Validate query parameters
+const { id } = req.query;
+if (!id || typeof id !== "string") {
+  res.status(400).json({
+    success: false,
+    error: "BAD_REQUEST",
+    message: "ID query parameter is required"
+  });
+  return;
+}
+```
+
+## Rules
+
+- Always return `Promise<void>`
+- Never throw errors - always respond with JSON
+- Check for null/undefined from service layer
+- Use appropriate HTTP status codes (200, 201, 400, 404, 409, 500)

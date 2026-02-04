@@ -1,0 +1,104 @@
+---
+description: General project conventions and best practices
+alwaysApply: true
+---
+
+# Project Conventions
+
+## Import Paths
+
+Use path aliases defined in `tsconfig.json`:
+
+```typescript
+// ✅ Use alias
+import prisma from "@/shared/database/prisma";
+import { PersonResponse } from "@/shared/types/person.types";
+
+// ❌ Avoid relative paths
+import prisma from "../../shared/database/prisma";
+```
+
+## Singleton Pattern
+
+Export singleton instances for controllers, services, and repositories:
+
+```typescript
+// ✅ Export singleton
+class PersonController { }
+export default new PersonController();
+
+// ❌ Don't export class
+export class PersonController { }
+```
+
+## Async/Await
+
+Always use async/await (never raw promises):
+
+```typescript
+// ✅ Use async/await
+async function getData() {
+  const result = await repository.findAll();
+  return result;
+}
+
+// ❌ Avoid .then()
+function getData() {
+  return repository.findAll().then(result => result);
+}
+```
+
+## Error Messages
+
+Use descriptive, user-friendly error messages:
+
+```typescript
+// ✅ Clear and specific
+throw new Error("Person with name 'John' already exists");
+throw new Error("Cannot marry a person to themselves");
+
+// ❌ Vague
+throw new Error("Invalid input");
+throw new Error("Error");
+```
+
+## Response Structure
+
+All API responses follow this structure:
+
+```typescript
+// Success
+{
+  success: true,
+  data: any,
+  message?: string,
+  count?: number
+}
+
+// Error
+{
+  success: false,
+  error: string,
+  message: string
+}
+```
+
+## Database Access
+
+- Only repositories access Prisma
+- Services call repositories
+- Controllers call services
+- No layer should skip levels
+
+## File Organization
+
+```
+src/
+├── features/          # Feature modules
+│   ├── persons/
+│   └── marriage/
+├── shared/           # Shared code
+│   ├── database/     # Prisma client
+│   └── types/        # Type definitions
+└── app.ts           # Application entry
+```
