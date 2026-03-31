@@ -26,6 +26,8 @@ model Person {
   relationships Relationship[] @relation("personRelation")
   relatedRelationships Relationship[] @relation("relatedPersonRelation")
   memberOfFamilies FamilyMember[]
+  parentsOf ParentChild[] @relation("ParentRelation")
+  childOf ParentChild[] @relation("ChildRelation")
 
   @@map("persons")
 }
@@ -52,8 +54,6 @@ model Relationship {
 }
 
 enum RelationshipType {
-  PARENT
-  CHILD
   SPOUSE
 }
 
@@ -68,6 +68,27 @@ model Family {
   @@map("families")
 }
 
+model ParentChild {
+  parentId   String
+  parentName String @db.VarChar(100)
+  childId    String
+  childName  String @db.VarChar(100)
+  type       ParentType
+
+  parent     Person @relation("ParentRelation", fields: [parentId], references: [id], onDelete: Cascade)
+  child      Person @relation("ChildRelation",  fields: [childId],  references: [id], onDelete: Cascade)
+
+  @@id([parentId, childId])
+  @@index([childId])
+  @@map("parent_child")
+}
+
+enum ParentType {
+  BIOLOGICAL
+  ADOPTIVE
+  STEP
+}
+
 model FamilyMember {
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
   familyId String
@@ -80,7 +101,6 @@ model FamilyMember {
 }
 
 enum FamilyMemberRole {
-  FATHER
-  MOTHER
+  PARENT
   CHILD
 }

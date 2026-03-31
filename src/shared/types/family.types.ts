@@ -32,6 +32,8 @@ export type FamilyWithMembers = Family & {
   }>;
 };
 
+// PARENT role covers both father (MAN) and mother (WOMAN) — gender distinguishes them
+
 export interface CreateFamilyPersonRequest {
   id?: string | null;
   person?: CreatePersonRequest | null;

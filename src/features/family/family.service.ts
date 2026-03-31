@@ -153,21 +153,8 @@ class FamilyService {
 
     // 8. Create parent-child relationships
     for (const child of children) {
-      // Father -> Child relationship
-      await familyRepository.createParentChildRelationships(
-        father.id,
-        father.name,
-        child.id,
-        child.name
-      );
-
-      // Mother -> Child relationship
-      await familyRepository.createParentChildRelationships(
-        mother.id,
-        mother.name,
-        child.id,
-        child.name
-      );
+      await familyRepository.createParentChildRelationships(father.id, father.name, child.id, child.name);
+      await familyRepository.createParentChildRelationships(mother.id, mother.name, child.id, child.name);
     }
 
     return family;
@@ -202,12 +189,11 @@ class FamilyService {
     }
 
     // 2. Get father and mother
-    const father = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.FATHER
+    const parents = existingFamily.familyMembers.filter(
+      (m) => m.role === FamilyMemberRole.PARENT
     );
-    const mother = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.MOTHER
-    );
+    const father = parents.find((m) => m.person.gender === Gender.MAN) ?? null;
+    const mother = parents.find((m) => m.person.gender === Gender.WOMAN) ?? null;
 
     if (!father || !mother) {
       throw new Error("Family must have both father and mother");
@@ -260,19 +246,8 @@ class FamilyService {
 
     // 7. Create new parent-child relationships
     for (const child of newChildren) {
-      await familyRepository.createParentChildRelationships(
-        father.personId,
-        father.person.name,
-        child.id,
-        child.name
-      );
-
-      await familyRepository.createParentChildRelationships(
-        mother.personId,
-        mother.person.name,
-        child.id,
-        child.name
-      );
+      await familyRepository.createParentChildRelationships(father.personId, father.person.name, child.id, child.name);
+      await familyRepository.createParentChildRelationships(mother.personId, mother.person.name, child.id, child.name);
     }
 
     return this.mapToResponse(updatedFamily);
@@ -301,12 +276,11 @@ class FamilyService {
     }
 
     // 3. Get mother and children
-    const mother = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.MOTHER
+    const parents = existingFamily.familyMembers.filter(
+      (m) => m.role === FamilyMemberRole.PARENT
     );
-    const oldFather = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.FATHER
-    );
+    const mother = parents.find((m) => m.person.gender === Gender.WOMAN) ?? null;
+    const oldFather = parents.find((m) => m.person.gender === Gender.MAN) ?? null;
     const children = existingFamily.familyMembers.filter(
       (m) => m.role === FamilyMemberRole.CHILD
     );
@@ -368,12 +342,7 @@ class FamilyService {
 
     // 8. Create new parent-child relationships
     for (const child of children) {
-      await familyRepository.createParentChildRelationships(
-        fatherId,
-        newFather.name,
-        child.personId,
-        child.person.name
-      );
+      await familyRepository.createParentChildRelationships(fatherId, newFather.name, child.personId, child.person.name);
     }
 
     return this.mapToResponse(updatedFamily);
@@ -402,12 +371,11 @@ class FamilyService {
     }
 
     // 3. Get father and children
-    const father = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.FATHER
+    const parents = existingFamily.familyMembers.filter(
+      (m) => m.role === FamilyMemberRole.PARENT
     );
-    const oldMother = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.MOTHER
-    );
+    const father = parents.find((m) => m.person.gender === Gender.MAN) ?? null;
+    const oldMother = parents.find((m) => m.person.gender === Gender.WOMAN) ?? null;
     const children = existingFamily.familyMembers.filter(
       (m) => m.role === FamilyMemberRole.CHILD
     );
@@ -469,12 +437,7 @@ class FamilyService {
 
     // 8. Create new parent-child relationships
     for (const child of children) {
-      await familyRepository.createParentChildRelationships(
-        motherId,
-        newMother.name,
-        child.personId,
-        child.person.name
-      );
+      await familyRepository.createParentChildRelationships(motherId, newMother.name, child.personId, child.person.name);
     }
 
     return this.mapToResponse(updatedFamily);
@@ -494,12 +457,11 @@ class FamilyService {
     }
 
     // 2. Get family members
-    const father = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.FATHER
+    const memberParents = existingFamily.familyMembers.filter(
+      (m) => m.role === FamilyMemberRole.PARENT
     );
-    const mother = existingFamily.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.MOTHER
-    );
+    const father = memberParents.find((m) => m.person.gender === Gender.MAN) ?? null;
+    const mother = memberParents.find((m) => m.person.gender === Gender.WOMAN) ?? null;
     const children = existingFamily.familyMembers.filter(
       (m) => m.role === FamilyMemberRole.CHILD
     );
@@ -528,12 +490,11 @@ class FamilyService {
 
   // Map family to response
   private mapToResponse(family: FamilyWithMembers): FamilyResponse {
-    const father = family.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.FATHER
+    const parents = family.familyMembers.filter(
+      (m) => m.role === FamilyMemberRole.PARENT
     );
-    const mother = family.familyMembers.find(
-      (m) => m.role === FamilyMemberRole.MOTHER
-    );
+    const father = parents.find((m) => m.person.gender === Gender.MAN) ?? null;
+    const mother = parents.find((m) => m.person.gender === Gender.WOMAN) ?? null;
     const children = family.familyMembers
       .filter((m) => m.role === FamilyMemberRole.CHILD)
       .map((m) => ({

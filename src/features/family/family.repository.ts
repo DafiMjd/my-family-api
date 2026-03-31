@@ -2,6 +2,7 @@ import {
   Relationship,
   RelationshipType,
   FamilyMemberRole,
+  ParentType,
 } from "@prisma/client";
 import prisma from "@/shared/database/prisma";
 import {
@@ -46,10 +47,10 @@ class FamilyRepository {
         some: {
           OR: [
             fatherId
-              ? { personId: fatherId, role: FamilyMemberRole.FATHER }
+              ? { personId: fatherId, role: FamilyMemberRole.PARENT }
               : undefined,
             motherId
-              ? { personId: motherId, role: FamilyMemberRole.MOTHER }
+              ? { personId: motherId, role: FamilyMemberRole.PARENT }
               : undefined,
             childrenId
               ? { personId: childrenId, role: FamilyMemberRole.CHILD }
@@ -96,8 +97,8 @@ class FamilyRepository {
         description,
         familyMembers: {
           create: [
-            { personId: fatherId, role: FamilyMemberRole.FATHER },
-            { personId: motherId, role: FamilyMemberRole.MOTHER },
+            { personId: fatherId, role: FamilyMemberRole.PARENT },
+            { personId: motherId, role: FamilyMemberRole.PARENT },
             ...childrenIds.map((childId) => ({
               personId: childId,
               role: FamilyMemberRole.CHILD,
@@ -125,35 +126,19 @@ class FamilyRepository {
     });
   }
 
-  // Create parent-child relationships (bidirectional)
+  // Create parent-child relationship
   async createParentChildRelationships(
     parentId: string,
     parentName: string,
     childId: string,
-    childName: string
-  ): Promise<Relationship[]> {
-    return await prisma.$transaction([
-      // Parent -> Child
-      prisma.relationship.create({
-        data: {
-          personId: parentId,
-          personName: parentName,
-          relatedPersonId: childId,
-          relatedPersonName: childName,
-          type: RelationshipType.PARENT,
-        },
-      }),
-      // Child -> Parent
-      prisma.relationship.create({
-        data: {
-          personId: childId,
-          personName: childName,
-          relatedPersonId: parentId,
-          relatedPersonName: parentName,
-          type: RelationshipType.CHILD,
-        },
-      }),
-    ]);
+    childName: string,
+    type: ParentType = ParentType.BIOLOGICAL
+  ): Promise<void> {
+    await prisma.parentChild.upsert({
+      where: { parentId_childId: { parentId, childId } },
+      update: { parentName, childName },
+      create: { parentId, parentName, childId, childName, type },
+    });
   }
 
   // Create spouse relationship (bidirectional)
@@ -221,15 +206,10 @@ class FamilyRepository {
     familyId: string,
     newChildrenIds: string[]
   ): Promise<FamilyWithMembers> {
-    // Delete existing children
     await prisma.familyMember.deleteMany({
-      where: {
-        familyId,
-        role: FamilyMemberRole.CHILD,
-      },
+      where: { familyId, role: FamilyMemberRole.CHILD },
     });
 
-    // Add new children
     await prisma.familyMember.createMany({
       data: newChildrenIds.map((childId) => ({
         familyId,
@@ -247,18 +227,21 @@ class FamilyRepository {
     familyId: string,
     newFatherId: string
   ): Promise<FamilyWithMembers> {
-    await prisma.familyMember.deleteMany({
-      where: {
-        familyId,
-        role: FamilyMemberRole.FATHER,
-      },
+    const currentFather = await prisma.familyMember.findFirst({
+      where: { familyId, role: FamilyMemberRole.PARENT, person: { gender: "MAN" } },
     });
+
+    if (currentFather) {
+      await prisma.familyMember.delete({
+        where: { familyId_personId: { familyId, personId: currentFather.personId } },
+      });
+    }
 
     await prisma.familyMember.create({
       data: {
         familyId,
         personId: newFatherId,
-        role: FamilyMemberRole.FATHER,
+        role: FamilyMemberRole.PARENT,
       },
     });
 
@@ -270,18 +253,21 @@ class FamilyRepository {
     familyId: string,
     newMotherId: string
   ): Promise<FamilyWithMembers> {
-    await prisma.familyMember.deleteMany({
-      where: {
-        familyId,
-        role: FamilyMemberRole.MOTHER,
-      },
+    const currentMother = await prisma.familyMember.findFirst({
+      where: { familyId, role: FamilyMemberRole.PARENT, person: { gender: "WOMAN" } },
     });
+
+    if (currentMother) {
+      await prisma.familyMember.delete({
+        where: { familyId_personId: { familyId, personId: currentMother.personId } },
+      });
+    }
 
     await prisma.familyMember.create({
       data: {
         familyId,
         personId: newMotherId,
-        role: FamilyMemberRole.MOTHER,
+        role: FamilyMemberRole.PARENT,
       },
     });
 
@@ -293,23 +279,10 @@ class FamilyRepository {
     parentIds: string[],
     childrenIds: string[]
   ): Promise<void> {
-    // Delete all parent-child relationships between parents and children
-    await prisma.relationship.deleteMany({
+    await prisma.parentChild.deleteMany({
       where: {
-        OR: [
-          // Parent -> Child
-          {
-            personId: { in: parentIds },
-            relatedPersonId: { in: childrenIds },
-            type: RelationshipType.PARENT,
-          },
-          // Child -> Parent
-          {
-            personId: { in: childrenIds },
-            relatedPersonId: { in: parentIds },
-            type: RelationshipType.CHILD,
-          },
-        ],
+        parentId: { in: parentIds },
+        childId: { in: childrenIds },
       },
     });
   }
