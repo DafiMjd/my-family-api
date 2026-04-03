@@ -10,15 +10,30 @@ import { validationResult } from "express-validator";
 class PersonController {
   async getAllPersons(req: Request, res: Response): Promise<void> {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: errors.array(),
+        });
+        return;
+      }
+
       const name = typeof req.query.name === "string" ? req.query.name : undefined;
       const gender = typeof req.query.gender === "string" ? req.query.gender : undefined;
+      const limit = req.query.limit !== undefined ? Number(req.query.limit) : 10;
+      const offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
 
-      const persons = await personService.getAllPersons({ name, gender });
+      const { data, total } = await personService.getAllPersons({ name, gender, limit, offset });
 
       res.status(200).json({
         success: true,
-        data: persons,
-        count: persons.length,
+        data,
+        count: data.length,
+        total,
+        limit: limit ?? null,
+        offset,
       });
     } catch (error) {
       res.status(500).json({

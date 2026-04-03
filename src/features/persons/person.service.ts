@@ -1,4 +1,4 @@
-import personRepository, { PersonFilters } from "./person.repository";
+import personRepository, { PersonFilters, PaginatedPersons } from "./person.repository";
 import {
   Person,
   CreatePersonRequest,
@@ -7,10 +7,15 @@ import {
   Gender,
 } from "@/shared/types/person.types";
 
+export interface PaginatedPersonsResponse {
+  data: PersonResponse[];
+  total: number;
+}
+
 class PersonService {
-  async getAllPersons(filters?: PersonFilters): Promise<PersonResponse[]> {
-    const persons = await personRepository.findAll(filters);
-    return persons.map(this.mapPersonToResponse);
+  async getAllPersons(filters?: PersonFilters): Promise<PaginatedPersonsResponse> {
+    const { data, total } = await personRepository.findAll(filters);
+    return { data: data.map(this.mapPersonToResponse), total };
   }
 
   async getPersonById(id: string): Promise<PersonResponse | null> {

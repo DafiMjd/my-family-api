@@ -9,17 +9,33 @@ import prisma from "@/shared/database/prisma";
 export interface PersonFilters {
   name?: string;
   gender?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface PaginatedPersons {
+  data: Person[];
+  total: number;
 }
 
 class PersonRepository {
-  async findAll(filters?: PersonFilters): Promise<Person[]> {
-    return await prisma.person.findMany({
-      where: {
-        ...(filters?.name && { name: { contains: filters.name, mode: "insensitive" } }),
-        ...(filters?.gender && { gender: filters.gender as Gender }),
-      },
-      orderBy: { name: "asc" },
-    });
+  async findAll(filters?: PersonFilters): Promise<PaginatedPersons> {
+    const where = {
+      ...(filters?.name && { name: { contains: filters.name, mode: "insensitive" as const } }),
+      ...(filters?.gender && { gender: filters.gender as Gender }),
+    };
+
+    const [data, total] = await prisma.$transaction([
+      prisma.person.findMany({
+        where,
+        orderBy: { name: "asc" },
+        ...(filters?.limit !== undefined && { take: filters.limit }),
+        ...(filters?.offset !== undefined && { skip: filters.offset }),
+      }),
+      prisma.person.count({ where }),
+    ]);
+
+    return { data, total };
   }
 
   async findById(id: string): Promise<Person | null> {
