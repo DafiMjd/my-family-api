@@ -7,7 +7,7 @@ This project has 5 debug configurations available in Cursor/VS Code.
 ### 1. 🚀 Debug API Server (Recommended)
 **Use this for:** Normal API debugging
 
-- Starts the Express server on port 3000
+- Starts the Express server on port 3001
 - Loads environment variables from `.env`
 - Sets breakpoints in any TypeScript file
 - Auto-reloads when you restart
@@ -15,7 +15,7 @@ This project has 5 debug configurations available in Cursor/VS Code.
 **How to use:**
 1. Set breakpoints in your code
 2. Press `F5` or click "Debug API Server"
-3. Test your API endpoints (e.g., `http://localhost:3000/health`)
+3. Test your API endpoints (e.g., `http://localhost:3001/health`)
 4. Code will pause at breakpoints
 
 ---
@@ -125,7 +125,7 @@ While debugging, use the Debug Console to:
 - Restart the debug session
 
 ### Port already in use?
-- Stop any running instance: `lsof -ti:3000 | xargs kill -9`
+- Stop any running instance: `lsof -ti:3001 | xargs kill -9`
 - Or change the port in `.env`
 
 ### Can't attach to process?
@@ -139,7 +139,7 @@ While debugging, use the Debug Console to:
 1. Open `src/features/persons/person.controller.ts`
 2. Set breakpoint on line with `const person = await personService.getPersonById(id);`
 3. Press `F5` to start "Debug API Server"
-4. Open browser/Postman: `GET http://localhost:3000/api/person/one?id=some-id`
+4. Open browser/Postman: `GET http://localhost:3001/api/person/one?id=some-id`
 5. Code pauses at breakpoint
 6. Inspect variables in left sidebar or hover over code
 7. Step through with `F10` (step over) or `F11` (step into)

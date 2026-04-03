@@ -2,8 +2,10 @@ import familyTreeRepository from "./family-tree.repository";
 import {
   FamilyTreeRootEntryResponse,
   FamilyTreeRelativeResponse,
+  FamilyTreeRelativeWithSpouseResponse,
   FamilyTreePerson,
   FamilyTreePersonWithRelation,
+  FamilyTreePersonWithRelationAndSpouse,
   FamilyTreePersonResponse,
 } from "@/shared/types/family-tree.types";
 import { Gender } from "@prisma/client";
@@ -48,10 +50,20 @@ class FamilyTreeService {
     return result;
   }
 
-  async getChildren(personId: string): Promise<FamilyTreeRelativeResponse[]> {
+  async getChildren(
+    personId: string,
+    withSpouse = false
+  ): Promise<FamilyTreeRelativeResponse[] | FamilyTreeRelativeWithSpouseResponse[]> {
     const exists = await familyTreeRepository.personExists(personId);
     if (!exists) {
       throw new Error(`Person with ID '${personId}' not found`);
+    }
+    if (withSpouse) {
+      const children = await familyTreeRepository.findChildrenWithSpouse(personId);
+      if (children === null) {
+        throw new Error(`Person with ID '${personId}' not found`);
+      }
+      return children.map((p) => this.mapToRelativeWithSpouseResponse(p));
     }
 
     const children = await familyTreeRepository.findChildren(personId);
@@ -88,6 +100,16 @@ class FamilyTreeService {
     return {
       ...this.mapToPersonResponse(person),
       relationshipType: person.relationshipType,
+    };
+  }
+
+  private mapToRelativeWithSpouseResponse(
+    person: FamilyTreePersonWithRelationAndSpouse
+  ): FamilyTreeRelativeWithSpouseResponse {
+    return {
+      ...this.mapToPersonResponse(person),
+      relationshipType: person.relationshipType,
+      spouse: person.spouse ? this.mapToPersonResponse(person.spouse) : null,
     };
   }
 }

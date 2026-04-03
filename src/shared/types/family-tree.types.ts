@@ -26,6 +26,22 @@ export type FamilyTreePersonWithRelation = FamilyTreePerson & {
   relationshipType: ParentType;
 };
 
+// Internal type returned by the repository — person with its children, each child carrying their own active spouse.
+export type PersonWithChildrenAndSpouse = {
+  parentsOf: Array<{
+    child: FamilyTreePerson & {
+      relationships: Array<{ relatedPerson: FamilyTreePerson }>;
+    };
+    type: ParentType;
+  }>;
+} | null;
+
+// Flattened internal type after mapping the raw repo result.
+export type FamilyTreePersonWithRelationAndSpouse = FamilyTreePerson & {
+  relationshipType: ParentType;
+  spouse: FamilyTreePerson | null;
+};
+
 export interface FamilyTreePersonResponse {
   id: string;
   name: string;
@@ -50,6 +66,10 @@ export type FamilyTreeRootsResponse = FamilyTreePersonResponse;
 
 export interface FamilyTreeRelativeResponse extends FamilyTreePersonResponse {
   relationshipType: ParentType;
+}
+
+export interface FamilyTreeRelativeWithSpouseResponse extends FamilyTreeRelativeResponse {
+  spouse: FamilyTreePersonResponse | null;
 }
 
 export { ParentType, Gender };

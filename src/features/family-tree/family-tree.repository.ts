@@ -2,6 +2,8 @@ import prisma from "@/shared/database/prisma";
 import { RelationshipType } from "@prisma/client";
 import {
   FamilyTreePersonWithRelation,
+  FamilyTreePersonWithRelationAndSpouse,
+  PersonWithChildrenAndSpouse,
   RootPersonWithSpouse,
 } from "@/shared/types/family-tree.types";
 
@@ -27,6 +29,39 @@ class FamilyTreeRepository {
     });
 
     return rows as RootPersonWithSpouse[];
+  }
+
+  // Find all children of a given person, each child carrying their own active spouse — single query.
+  // Returns null when the person does not exist.
+  async findChildrenWithSpouse(personId: string): Promise<FamilyTreePersonWithRelationAndSpouse[] | null> {
+    const person = await prisma.person.findUnique({
+      where: { id: personId },
+      select: {
+        parentsOf: {
+          include: {
+            child: {
+              include: {
+                relationships: {
+                  where: { type: RelationshipType.SPOUSE, endDate: null },
+                  include: { relatedPerson: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+          orderBy: { child: { birthDate: "asc" } },
+        },
+      },
+    });
+
+    if (!person) return null;
+
+    const raw = person as unknown as NonNullable<PersonWithChildrenAndSpouse>;
+    return raw.parentsOf.map((row) => ({
+      ...row.child,
+      relationshipType: row.type,
+      spouse: row.child.relationships[0]?.relatedPerson ?? null,
+    }));
   }
 
   // Find all children of a given person

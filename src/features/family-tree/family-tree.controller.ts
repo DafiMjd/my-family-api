@@ -36,7 +36,8 @@ class FamilyTreeController {
       }
 
       const { personId } = req.params;
-      const children = await familyTreeService.getChildren(personId);
+      const withSpouse = req.query.withSpouse === "true";
+      const children = await familyTreeService.getChildren(personId, withSpouse);
 
       res.status(200).json({
         success: true,

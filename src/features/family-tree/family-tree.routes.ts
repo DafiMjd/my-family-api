@@ -1,6 +1,6 @@
 import { Router } from "express";
 import familyTreeController from "./family-tree.controller";
-import { personIdParamValidation } from "./family-tree.validation";
+import { personIdParamValidation, withSpouseQueryValidation } from "./family-tree.validation";
 
 const router = Router();
 
@@ -11,6 +11,7 @@ router.get("/roots", familyTreeController.getRoots.bind(familyTreeController));
 router.get(
   "/:personId/children",
   personIdParamValidation,
+  withSpouseQueryValidation,
   familyTreeController.getChildren.bind(familyTreeController)
 );
 

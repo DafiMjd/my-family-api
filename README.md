@@ -60,7 +60,7 @@ cp .env.example .env
 npm run dev
 ```
 
-The server will start on `http://localhost:3000`
+The server will start on `http://localhost:3001`
 
 ## 📜 Available Scripts
 
@@ -85,12 +85,12 @@ The server will start on `http://localhost:3000`
 
 ### Get all users
 ```bash
-curl http://localhost:3000/api/users
+curl http://localhost:3001/api/users
 ```
 
 ### Create a new user
 ```bash
-curl -X POST http://localhost:3000/api/users \
+curl -X POST http://localhost:3001/api/users \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Doe",
@@ -102,12 +102,12 @@ curl -X POST http://localhost:3000/api/users \
 
 ### Get user by ID
 ```bash
-curl http://localhost:3000/api/users/1
+curl http://localhost:3001/api/users/1
 ```
 
 ### Update user
 ```bash
-curl -X PUT http://localhost:3000/api/users/1 \
+curl -X PUT http://localhost:3001/api/users/1 \
   -H "Content-Type: application/json" \
   -d '{
     "name": "John Smith",
@@ -117,7 +117,7 @@ curl -X PUT http://localhost:3000/api/users/1 \
 
 ### Delete user
 ```bash
-curl -X DELETE http://localhost:3000/api/users/1
+curl -X DELETE http://localhost:3001/api/users/1
 ```
 
 ## 📊 Data Models
@@ -171,7 +171,7 @@ interface CreateUserRequest {
 Create a `.env` file in the root directory:
 
 ```env
-PORT=3000
+PORT=3001
 NODE_ENV=development
 ```
 

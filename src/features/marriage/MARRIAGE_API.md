@@ -139,7 +139,7 @@ Completely removes a marriage relationship from the database.
 
 ### Create a Marriage
 ```bash
-curl -X POST http://localhost:3000/api/marriage/marry \
+curl -X POST http://localhost:3001/api/marriage/marry \
   -H "Content-Type: application/json" \
   -d '{
     "personId1": "person-uuid-1",
@@ -150,7 +150,7 @@ curl -X POST http://localhost:3000/api/marriage/marry \
 
 ### End a Marriage (Divorce)
 ```bash
-curl -X PUT "http://localhost:3000/api/marriage/divorce?personId=person-uuid-1" \
+curl -X PUT "http://localhost:3001/api/marriage/divorce?personId=person-uuid-1" \
   -H "Content-Type: application/json" \
   -d '{
     "endDate": "2024-12-15T00:00:00.000Z"
@@ -159,12 +159,12 @@ curl -X PUT "http://localhost:3000/api/marriage/divorce?personId=person-uuid-1" 
 
 ### Cancel a Marriage
 ```bash
-curl -X DELETE "http://localhost:3000/api/marriage/cancel?personId=person-uuid-1"
+curl -X DELETE "http://localhost:3001/api/marriage/cancel?personId=person-uuid-1"
 ```
 
 ### Cancel Divorce (Restore Marriage)
 ```bash
-curl -X PUT http://localhost:3000/api/marriage/cancel-divorce \
+curl -X PUT http://localhost:3001/api/marriage/cancel-divorce \
   -H "Content-Type: application/json" \
   -d '{
     "personId": "person-uuid-1"
@@ -174,22 +174,22 @@ curl -X PUT http://localhost:3000/api/marriage/cancel-divorce \
 ### Get Persons by Status
 ```bash
 # Get married couples
-curl -X GET "http://localhost:3000/api/marriage/person/list?status=married"
+curl -X GET "http://localhost:3001/api/marriage/person/list?status=married"
 
 # Get single persons
-curl -X GET "http://localhost:3000/api/marriage/person/list?status=single"
+curl -X GET "http://localhost:3001/api/marriage/person/list?status=single"
 
 # Get divorced couples
-curl -X GET "http://localhost:3000/api/marriage/person/list?status=divorced"
+curl -X GET "http://localhost:3001/api/marriage/person/list?status=divorced"
 
 # Get married couples with only men
-curl -X GET "http://localhost:3000/api/marriage/person/list?status=married&gender=MAN"
+curl -X GET "http://localhost:3001/api/marriage/person/list?status=married&gender=MAN"
 
 # Get single women
-curl -X GET "http://localhost:3000/api/marriage/person/list?status=single&gender=WOMAN"
+curl -X GET "http://localhost:3001/api/marriage/person/list?status=single&gender=WOMAN"
 
 # Get divorced couples with only women
-curl -X GET "http://localhost:3000/api/marriage/person/list?status=divorced&gender=WOMAN"
+curl -X GET "http://localhost:3001/api/marriage/person/list?status=divorced&gender=WOMAN"
 ```
 
 ### 4. Cancel Divorce (Restore Marriage)
