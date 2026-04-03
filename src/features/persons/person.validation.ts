@@ -48,6 +48,11 @@ export const buildCreatePersonValidation = (
     .isURL(),
 ];
 
+export const listPersonsQueryValidation = [
+  query("name").optional().isString().withMessage("name must be a string"),
+  query("gender").optional().isIn(["MAN", "WOMAN"]).withMessage("gender must be MAN or WOMAN"),
+];
+
 export const updatePersonValidation = [
   body("name", "name is required").optional(),
   body("gender", "gender is required").optional(),

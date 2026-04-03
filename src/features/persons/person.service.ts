@@ -1,4 +1,4 @@
-import personRepository from "./person.repository";
+import personRepository, { PersonFilters } from "./person.repository";
 import {
   Person,
   CreatePersonRequest,
@@ -8,8 +8,8 @@ import {
 } from "@/shared/types/person.types";
 
 class PersonService {
-  async getAllPersons(): Promise<PersonResponse[]> {
-    const persons = await personRepository.findAll();
+  async getAllPersons(filters?: PersonFilters): Promise<PersonResponse[]> {
+    const persons = await personRepository.findAll(filters);
     return persons.map(this.mapPersonToResponse);
   }
 

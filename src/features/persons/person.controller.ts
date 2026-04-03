@@ -10,15 +10,10 @@ import { validationResult } from "express-validator";
 class PersonController {
   async getAllPersons(req: Request, res: Response): Promise<void> {
     try {
-      const { gender } = req.query;
+      const name = typeof req.query.name === "string" ? req.query.name : undefined;
+      const gender = typeof req.query.gender === "string" ? req.query.gender : undefined;
 
-      let persons: PersonResponse[] = [];
-
-      if (gender && typeof gender === "string") {
-        persons = await personService.getPersonsByGender(gender);
-      } else {
-        persons = await personService.getAllPersons();
-      }
+      const persons = await personService.getAllPersons({ name, gender });
 
       res.status(200).json({
         success: true,

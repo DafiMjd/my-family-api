@@ -2,13 +2,23 @@ import {
   Person,
   CreatePersonRequest,
   UpdatePersonRequest,
+  Gender,
 } from "@/shared/types/person.types";
 import prisma from "@/shared/database/prisma";
 
+export interface PersonFilters {
+  name?: string;
+  gender?: string;
+}
+
 class PersonRepository {
-  async findAll(): Promise<Person[]> {
+  async findAll(filters?: PersonFilters): Promise<Person[]> {
     return await prisma.person.findMany({
-      orderBy: { createdAt: "desc" },
+      where: {
+        ...(filters?.name && { name: { contains: filters.name, mode: "insensitive" } }),
+        ...(filters?.gender && { gender: filters.gender as Gender }),
+      },
+      orderBy: { name: "asc" },
     });
   }
 
@@ -90,7 +100,7 @@ class PersonRepository {
   async findByGender(gender: string): Promise<Person[]> {
     return await prisma.person.findMany({
       where: { gender: gender as any },
-      orderBy: { createdAt: "desc" },
+      orderBy: { name: "asc" },
     });
   }
 

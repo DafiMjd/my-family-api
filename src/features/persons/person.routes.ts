@@ -2,13 +2,14 @@ import { Router } from "express";
 import personController from "./person.controller";
 import {
   createPersonValidation,
+  listPersonsQueryValidation,
   updatePersonValidation,
 } from "./person.validation";
 
 const router = Router();
 
 // GET /api/person - Get all person
-router.get("/list", personController.getAllPersons.bind(personController));
+router.get("/list", listPersonsQueryValidation, personController.getAllPersons.bind(personController));
 
 // GET /api/person/count - Get person count
 router.get("/count", personController.getPersonCount.bind(personController));
