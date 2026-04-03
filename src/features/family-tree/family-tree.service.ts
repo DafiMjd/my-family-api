@@ -3,6 +3,7 @@ import {
   FamilyTreeRootEntryResponse,
   FamilyTreeRelativeResponse,
   FamilyTreeRelativeWithSpouseResponse,
+  FamilyTreeClosestRelatedPeopleResponse,
   FamilyTreePerson,
   FamilyTreePersonWithRelation,
   FamilyTreePersonWithRelationAndSpouse,
@@ -68,6 +69,25 @@ class FamilyTreeService {
 
     const children = await familyTreeRepository.findChildren(personId);
     return children.map((p) => this.mapToRelativeResponse(p));
+  }
+
+  async getClosestRelatedPeople(personId: string): Promise<FamilyTreeClosestRelatedPeopleResponse> {
+    const result = await familyTreeRepository.findClosestRelatedPeople(personId);
+    if (result === null) {
+      throw new Error(`Person with ID '${personId}' not found`);
+    }
+
+    return {
+      spouse: result.relationships[0]?.relatedPerson
+        ? this.mapToPersonResponse(result.relationships[0].relatedPerson)
+        : null,
+      children: result.parentsOf.map((row) =>
+        this.mapToRelativeResponse({ ...row.child, relationshipType: row.type })
+      ),
+      parents: result.childOf.map((row) =>
+        this.mapToRelativeResponse({ ...row.parent, relationshipType: row.type })
+      ),
+    };
   }
 
   async getParents(personId: string): Promise<FamilyTreeRelativeResponse[]> {

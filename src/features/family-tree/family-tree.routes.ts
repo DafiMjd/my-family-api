@@ -15,6 +15,13 @@ router.get(
   familyTreeController.getChildren.bind(familyTreeController)
 );
 
+// GET /api/family-tree/:personId/closest-related-people - Get spouse, children, and parents in one call
+router.get(
+  "/:personId/closest-related-people",
+  personIdParamValidation,
+  familyTreeController.getClosestRelatedPeople.bind(familyTreeController)
+);
+
 // GET /api/family-tree/:personId/parents - Get parents of a person
 router.get(
   "/:personId/parents",

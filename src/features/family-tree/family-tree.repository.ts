@@ -4,6 +4,7 @@ import {
   FamilyTreePersonWithRelation,
   FamilyTreePersonWithRelationAndSpouse,
   PersonWithChildrenAndSpouse,
+  PersonWithClosestRelatives,
   RootPersonWithSpouse,
 } from "@/shared/types/family-tree.types";
 
@@ -94,6 +95,31 @@ class FamilyTreeRepository {
       ...row.parent,
       relationshipType: row.type,
     }));
+  }
+
+  // Fetch spouse, children, and parents of a person in a single query.
+  // Returns null when the person does not exist.
+  async findClosestRelatedPeople(personId: string): Promise<PersonWithClosestRelatives> {
+    const result = await prisma.person.findUnique({
+      where: { id: personId },
+      select: {
+        relationships: {
+          where: { type: RelationshipType.SPOUSE, endDate: null },
+          include: { relatedPerson: true },
+          take: 1,
+        },
+        parentsOf: {
+          include: { child: true },
+          orderBy: { child: { birthDate: "asc" } },
+        },
+        childOf: {
+          include: { parent: true },
+          orderBy: { parent: { birthDate: "asc" } },
+        },
+      },
+    });
+
+    return result as PersonWithClosestRelatives;
   }
 
   // Check whether a person exists

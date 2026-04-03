@@ -72,4 +72,17 @@ export interface FamilyTreeRelativeWithSpouseResponse extends FamilyTreeRelative
   spouse: FamilyTreePersonResponse | null;
 }
 
+// Internal type for the single-query closest-related-people result.
+export type PersonWithClosestRelatives = {
+  relationships: Array<{ relatedPerson: FamilyTreePerson }>;
+  parentsOf: Array<{ child: FamilyTreePerson; type: ParentType }>;
+  childOf: Array<{ parent: FamilyTreePerson; type: ParentType }>;
+} | null;
+
+export interface FamilyTreeClosestRelatedPeopleResponse {
+  spouse: FamilyTreePersonResponse | null;
+  children: FamilyTreeRelativeResponse[];
+  parents: FamilyTreeRelativeResponse[];
+}
+
 export { ParentType, Gender };
