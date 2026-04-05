@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAccessJwt } from "@/shared/middleware/require-access-jwt.middleware";
 import personController from "./person.controller";
 import {
   createPersonValidation,
@@ -29,6 +30,7 @@ router.get("/one", personController.getPersonById.bind(personController));
 // POST /api/person - Create new person
 router.post(
   "/one",
+  requireAccessJwt,
   createPersonValidation,
   personController.createPerson.bind(personController)
 );
@@ -36,11 +38,16 @@ router.post(
 // PUT /api/person/one - Update person (query param)
 router.put(
   "/one",
+  requireAccessJwt,
   updatePersonValidation,
   personController.updatePerson.bind(personController)
 );
 
 // DELETE /api/person/one - Delete person (query param)
-router.delete("/one", personController.deletePerson.bind(personController));
+router.delete(
+  "/one",
+  requireAccessJwt,
+  personController.deletePerson.bind(personController)
+);
 
 export default router;

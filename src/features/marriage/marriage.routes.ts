@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { requireAccessJwt } from '@/shared/middleware/require-access-jwt.middleware';
 import marriageController from './marriage.controller';
 import {
   marryValidation,
@@ -13,6 +14,7 @@ const router = Router();
 // POST /api/marriage/marry - Create new marriage
 router.post(
   '/marry',
+  requireAccessJwt,
   marryValidation,
   marriageController.marry.bind(marriageController)
 );
@@ -20,6 +22,7 @@ router.post(
 // PUT /api/marriage/divorce - End marriage (divorce)
 router.put(
   '/divorce',
+  requireAccessJwt,
   divorceValidation,
   marriageController.divorce.bind(marriageController)
 );
@@ -27,6 +30,7 @@ router.put(
 // DELETE /api/marriage/cancel - Cancel marriage (delete)
 router.delete(
   '/cancel',
+  requireAccessJwt,
   cancelMarriageValidation,
   marriageController.cancelMarriage.bind(marriageController)
 );
@@ -34,6 +38,7 @@ router.delete(
 // PUT /api/marriage/cancel-divorce - Cancel divorce (restore marriage)
 router.put(
   '/cancel-divorce',
+  requireAccessJwt,
   cancelDivorceValidation,
   marriageController.cancelDivorce.bind(marriageController)
 );

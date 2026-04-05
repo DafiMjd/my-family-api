@@ -50,6 +50,11 @@ function issueTokenPair(admin: Admin): { token: string; refreshToken: string } {
   return { token, refreshToken };
 }
 
+export interface VerifiedAccessToken {
+  adminId: string;
+  username: string;
+}
+
 class AuthService {
   async login(username: string, password: string): Promise<LoginResponse | null> {
     const admin = await authRepository.findAdminByUsername(username);
@@ -97,6 +102,38 @@ class AuthService {
 
     const pair = issueTokenPair(admin);
     return pair;
+  }
+
+  /**
+   * Verifies an access JWT (Bearer token). Returns null if invalid, expired, or not an access token.
+   * Throws if JWT_SECRET is not configured.
+   */
+  verifyAccessToken(token: string): VerifiedAccessToken | null {
+    const accessSecret = process.env.JWT_SECRET;
+    if (!accessSecret) {
+      throw new Error(
+        "JWT authentication is not configured: set JWT_SECRET and JWT_REFRESH_SECRET in the environment"
+      );
+    }
+
+    let payload: JwtPayload & { tokenType?: string; username?: string };
+    try {
+      payload = jwt.verify(token, accessSecret) as JwtPayload & { tokenType?: string; username?: string };
+    } catch {
+      return null;
+    }
+
+    if (
+      payload.tokenType !== "access" ||
+      typeof payload.sub !== "string" ||
+      payload.sub.length === 0 ||
+      typeof payload.username !== "string" ||
+      payload.username.length === 0
+    ) {
+      return null;
+    }
+
+    return { adminId: payload.sub, username: payload.username };
   }
 }
 

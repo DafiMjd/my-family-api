@@ -70,6 +70,27 @@ class AuthService {
         const pair = issueTokenPair(admin);
         return pair;
     }
+    verifyAccessToken(token) {
+        const accessSecret = process.env.JWT_SECRET;
+        if (!accessSecret) {
+            throw new Error("JWT authentication is not configured: set JWT_SECRET and JWT_REFRESH_SECRET in the environment");
+        }
+        let payload;
+        try {
+            payload = jsonwebtoken_1.default.verify(token, accessSecret);
+        }
+        catch {
+            return null;
+        }
+        if (payload.tokenType !== "access" ||
+            typeof payload.sub !== "string" ||
+            payload.sub.length === 0 ||
+            typeof payload.username !== "string" ||
+            payload.username.length === 0) {
+            return null;
+        }
+        return { adminId: payload.sub, username: payload.username };
+    }
 }
 exports.default = new AuthService();
 //# sourceMappingURL=auth.service.js.map

@@ -25,7 +25,7 @@ app.use('/api/person', person_routes_1.default);
 app.use('/api/marriage', marriage_routes_1.default);
 app.use('/api/family', family_routes_1.default);
 app.use('/api/family-tree', family_tree_routes_1.default);
-app.use('/api', auth_routes_1.default);
+app.use('/api/auth', auth_routes_1.default);
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'OK',
@@ -53,8 +53,7 @@ app.listen(PORT, () => {
     console.log(`💍 Marriage API: http://localhost:${PORT}/api/marriage`);
     console.log(`👨‍👩‍👧‍👦 Family API: http://localhost:${PORT}/api/family`);
     console.log(`🌳 Family Tree API: http://localhost:${PORT}/api/family-tree`);
-    console.log(`🔐 Auth API: http://localhost:${PORT}/api/login`);
-    console.log(`🔐 Refresh token: http://localhost:${PORT}/api/refresh-token`);
+    console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
 });
 exports.default = app;
 //# sourceMappingURL=app.js.map
