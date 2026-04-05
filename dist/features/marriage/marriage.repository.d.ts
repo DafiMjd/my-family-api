@@ -1,0 +1,15 @@
+import { Relationship } from '@prisma/client';
+declare class MarriageRepository {
+    createMarriage(personId1: string, personName1: string, personId2: string, personName2: string, startDate: Date): Promise<Relationship[]>;
+    findActiveMarriage(personId: string): Promise<Relationship | null>;
+    divorceMarriage(personId: string, endDate: Date): Promise<Relationship[]>;
+    cancelMarriage(personId: string): Promise<Relationship[]>;
+    findAnyMarriage(personId: string): Promise<Relationship | null>;
+    cancelDivorce(personId: string): Promise<Relationship[]>;
+    getMarriedPersons(gender?: string): Promise<any[]>;
+    getDivorcedPersons(gender?: string): Promise<any[]>;
+    getSinglePersons(gender?: string): Promise<any[]>;
+}
+declare const _default: MarriageRepository;
+export default _default;
+//# sourceMappingURL=marriage.repository.d.ts.map

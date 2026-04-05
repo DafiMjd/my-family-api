@@ -1,6 +1,11 @@
-import { CreatePersonRequest, UpdatePersonRequest, PersonResponse } from '@/shared/types/person.types';
+import { PersonFilters } from "./person.repository";
+import { CreatePersonRequest, UpdatePersonRequest, PersonResponse } from "@/shared/types/person.types";
+export interface PaginatedPersonsResponse {
+    data: PersonResponse[];
+    total: number;
+}
 declare class PersonService {
-    getAllPersons(): Promise<PersonResponse[]>;
+    getAllPersons(filters?: PersonFilters): Promise<PaginatedPersonsResponse>;
     getPersonById(id: string): Promise<PersonResponse | null>;
     createPerson(personData: CreatePersonRequest): Promise<PersonResponse>;
     updatePerson(id: string, personData: UpdatePersonRequest): Promise<PersonResponse | null>;

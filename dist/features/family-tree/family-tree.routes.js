@@ -1,0 +1,15 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const family_tree_controller_1 = __importDefault(require("./family-tree.controller"));
+const family_tree_validation_1 = require("./family-tree.validation");
+const router = (0, express_1.Router)();
+router.get("/roots", family_tree_controller_1.default.getRoots.bind(family_tree_controller_1.default));
+router.get("/:personId/children", family_tree_validation_1.personIdParamValidation, family_tree_validation_1.withSpouseQueryValidation, family_tree_controller_1.default.getChildren.bind(family_tree_controller_1.default));
+router.get("/:personId/closest-related-people", family_tree_validation_1.personIdParamValidation, family_tree_controller_1.default.getClosestRelatedPeople.bind(family_tree_controller_1.default));
+router.get("/:personId/parents", family_tree_validation_1.personIdParamValidation, family_tree_controller_1.default.getParents.bind(family_tree_controller_1.default));
+exports.default = router;
+//# sourceMappingURL=family-tree.routes.js.map

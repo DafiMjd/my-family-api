@@ -5,19 +5,30 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("@/shared/database/prisma"));
 class PersonRepository {
-    async findAll() {
-        return await prisma_1.default.person.findMany({
-            orderBy: { createdAt: 'desc' }
-        });
+    async findAll(filters) {
+        const where = {
+            ...(filters?.name && { name: { contains: filters.name, mode: "insensitive" } }),
+            ...(filters?.gender && { gender: filters.gender }),
+        };
+        const [data, total] = await prisma_1.default.$transaction([
+            prisma_1.default.person.findMany({
+                where,
+                orderBy: { name: "asc" },
+                ...(filters?.limit !== undefined && { take: filters.limit }),
+                ...(filters?.offset !== undefined && { skip: filters.offset }),
+            }),
+            prisma_1.default.person.count({ where }),
+        ]);
+        return { data, total };
     }
     async findById(id) {
         return await prisma_1.default.person.findUnique({
-            where: { id }
+            where: { id },
         });
     }
     async findByName(name) {
         return await prisma_1.default.person.findFirst({
-            where: { name }
+            where: { name },
         });
     }
     async create(personData) {
@@ -25,8 +36,17 @@ class PersonRepository {
             data: {
                 ...personData,
                 birthDate: new Date(personData.birthDate),
-                deathDate: personData.deathDate ? new Date(personData.deathDate) : null
-            }
+                deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
+            },
+        });
+    }
+    async createMany(datas) {
+        return await prisma_1.default.person.createManyAndReturn({
+            data: datas.map((person) => ({
+                ...person,
+                birthDate: new Date(person.birthDate),
+                deathDate: person.deathDate ? new Date(person.deathDate) : null,
+            })),
         });
     }
     async update(id, personData) {
@@ -36,11 +56,13 @@ class PersonRepository {
                 updateData.birthDate = new Date(personData.birthDate);
             }
             if (personData.deathDate !== undefined) {
-                updateData.deathDate = personData.deathDate ? new Date(personData.deathDate) : null;
+                updateData.deathDate = personData.deathDate
+                    ? new Date(personData.deathDate)
+                    : null;
             }
             return await prisma_1.default.person.update({
                 where: { id },
-                data: updateData
+                data: updateData,
             });
         }
         catch (error) {
@@ -50,7 +72,7 @@ class PersonRepository {
     async delete(id) {
         try {
             await prisma_1.default.person.delete({
-                where: { id }
+                where: { id },
             });
             return true;
         }
@@ -64,19 +86,26 @@ class PersonRepository {
     async findByGender(gender) {
         return await prisma_1.default.person.findMany({
             where: { gender: gender },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { name: "asc" },
         });
     }
     async findLiving() {
         return await prisma_1.default.person.findMany({
             where: { deathDate: null },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: "desc" },
         });
     }
     async findDeceased() {
         return await prisma_1.default.person.findMany({
             where: { deathDate: { not: null } },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: "desc" },
+        });
+    }
+    async findPersonsByIds(personIds) {
+        return await prisma_1.default.person.findMany({
+            where: {
+                id: { in: personIds },
+            },
         });
     }
 }

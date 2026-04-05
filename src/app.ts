@@ -9,6 +9,7 @@ import personRoutes from '@/features/persons/person.routes';
 import marriageRoutes from '@/features/marriage/marriage.routes';
 import familyRoutes from '@/features/family/family.routes';
 import familyTreeRoutes from '@/features/family-tree/family-tree.routes';
+import authRoutes from '@/features/auth/auth.routes';
 
 // Load environment variables
 dotenv.config();
@@ -28,6 +29,7 @@ app.use('/api/person', personRoutes);
 app.use('/api/marriage', marriageRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/family-tree', familyTreeRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -63,6 +65,7 @@ app.listen(PORT, () => {
   console.log(`💍 Marriage API: http://localhost:${PORT}/api/marriage`);
   console.log(`👨‍👩‍👧‍👦 Family API: http://localhost:${PORT}/api/family`);
   console.log(`🌳 Family Tree API: http://localhost:${PORT}/api/family-tree`);
+  console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
 });
 
 export default app;
