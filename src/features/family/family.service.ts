@@ -2,6 +2,7 @@ import familyRepository from "./family.repository";
 import personRepository from "@/features/persons/person.repository";
 import {
   CreateFamilyRequestById,
+  CreateFamilyParentInput,
   UpdateFamilyChildrenRequest,
   UpdateFamilyFatherRequest,
   UpdateFamilyMotherRequest,
@@ -11,56 +12,176 @@ import {
   FamilyWithMembers,
   CreateFamilyRequest,
 } from "@/shared/types/family.types";
+import {
+  CreatePersonRequest,
+  CreatePersonRequestWithSpouse,
+} from "@/shared/types/person.types";
 import { Gender, FamilyMemberRole, Person } from "@prisma/client";
 
 class FamilyService {
   async createFamily(data: CreateFamilyRequest): Promise<FamilyResponse> {
-    const { father, mother, children } = data;
-    if (!father.id && !father.person) {
-      throw new Error("Provide either father ID or father person object");
+    const fatherIn = this.splitFamilyParentInput(data.father);
+    const motherIn = this.splitFamilyParentInput(data.mother);
+    const { children: childrenInput, description } = data;
+
+    if (fatherIn.person.gender !== Gender.MAN) {
+      throw new Error("Father must be male");
     }
-    if (!mother.id && !mother.person) {
-      throw new Error("Provide either mother ID or mother person object");
-    }
-    if (
-      children.length > 0 &&
-      children.some((child) => !child.id && !child.person)
-    ) {
-      throw new Error("Provide either child ID or child person object");
+    if (motherIn.person.gender !== Gender.WOMAN) {
+      throw new Error("Mother must be female");
     }
 
-    const createdFather = father.id
-      ? await personRepository.findById(father.id!)
-      : await personRepository.create(father.person!);
-    if (!createdFather) {
-      throw new Error(`Father with ID ${father.id} not found`);
-    }
-    const createdMother = mother.id
-      ? await personRepository.findById(mother.id!)
-      : await personRepository.create(mother.person!);
-    if (!createdMother) {
-      throw new Error(`Mother with ID ${mother.id} not found`);
+    const grandparentIds = [
+      ...new Set(
+        [fatherIn.parentId, motherIn.parentId].filter((id): id is string =>
+          Boolean(id)
+        )
+      ),
+    ];
+
+    const grandparentById = new Map<string, { id: string; name: string }>();
+    if (grandparentIds.length > 0) {
+      const grandparents = await personRepository.findPersonsByIds(
+        grandparentIds
+      );
+      for (const p of grandparents) {
+        grandparentById.set(p.id, { id: p.id, name: p.name });
+      }
+      if (grandparentById.size !== grandparentIds.length) {
+        throw new Error(
+          "Grandparent not found: parentId must reference an existing person"
+        );
+      }
     }
 
-    const childrenIds = children
-      .filter((child) => child.id)
-      .map((child) => child.id!);
-    const childrenToCreate = children
-      .filter((child) => !child.id)
-      .map((child) => child.person!);
-    const existingChildren = await personRepository.findPersonsByIds(
-      childrenIds
+    const [father, mother] = await Promise.all([
+      personRepository.create(fatherIn.person),
+      personRepository.create(motherIn.person),
+    ]);
+
+    const grandparentLinks: Promise<void>[] = [];
+    if (fatherIn.parentId) {
+      const gp = grandparentById.get(fatherIn.parentId)!;
+      grandparentLinks.push(
+        personRepository.linkBiologicalParentsForDesignatedParent(
+          father.id,
+          father.name,
+          gp
+        )
+      );
+    }
+    if (motherIn.parentId) {
+      const gp = grandparentById.get(motherIn.parentId)!;
+      grandparentLinks.push(
+        personRepository.linkBiologicalParentsForDesignatedParent(
+          mother.id,
+          mother.name,
+          gp
+        )
+      );
+    }
+    await Promise.all(grandparentLinks);
+
+    const childPersonPayloads = childrenInput.map((row) =>
+      this.stripSpouseFromChildInput(row)
+    );
+    const children =
+      childPersonPayloads.length > 0
+        ? await personRepository.createMany(childPersonPayloads)
+        : [];
+
+    const childSpouses = await this.createSpousesForChildren(
+      childrenInput,
+      children
     );
 
-    const createdChildren = await personRepository.createMany(childrenToCreate);
+    const familyName =
+      data.name !== undefined && String(data.name).trim() !== ""
+        ? String(data.name).trim()
+        : `${father.name} & ${mother.name}'s Family`;
 
     const family = await this.createFamilyWithMembers(
-      createdFather,
-      createdMother,
-      [...createdChildren, ...existingChildren]
+      father,
+      mother,
+      children,
+      familyName,
+      description ?? null
     );
 
-    return this.mapToResponse(family);
+    return this.mapToResponse(family, childSpouses);
+  }
+
+  /** Removes `spouse` so Prisma create does not receive an unknown field. */
+  private stripSpouseFromChildInput(
+    row: CreatePersonRequestWithSpouse
+  ): CreatePersonRequest {
+    const { spouse: _s, ...person } = row;
+    return person;
+  }
+
+  /**
+   * Creates spouse persons (batch) and SPOUSE links for children that include `spouse`.
+   * Returns a map of childId → spouse Person for the API response.
+   */
+  private async createSpousesForChildren(
+    childrenInput: CreatePersonRequestWithSpouse[],
+    children: Person[]
+  ): Promise<Map<string, Person>> {
+    const result = new Map<string, Person>();
+    if (childrenInput.length !== children.length) {
+      throw new Error("Invalid internal state: children length mismatch");
+    }
+
+    type Pair = { child: Person; spouseReq: CreatePersonRequest };
+    const pairs: Pair[] = [];
+    for (let i = 0; i < childrenInput.length; i++) {
+      const spouseReq = childrenInput[i].spouse;
+      if (!spouseReq) {
+        continue;
+      }
+      const child = children[i];
+      if (spouseReq.gender === child.gender) {
+        throw new Error(
+          "Child and spouse must have different genders (MAN and WOMAN)"
+        );
+      }
+      pairs.push({ child, spouseReq });
+    }
+
+    if (pairs.length === 0) {
+      return result;
+    }
+
+    const spouses = await personRepository.createMany(
+      pairs.map((p) => p.spouseReq)
+    );
+
+    await Promise.all(
+      pairs.map(({ child }, index) => {
+        const spouse = spouses[index];
+        return familyRepository.createSpouseRelationship(
+          child.id,
+          child.name,
+          spouse.id,
+          spouse.name,
+          new Date()
+        );
+      })
+    );
+
+    for (let i = 0; i < pairs.length; i++) {
+      result.set(pairs[i].child.id, spouses[i]);
+    }
+
+    return result;
+  }
+
+  private splitFamilyParentInput(input: CreateFamilyParentInput): {
+    parentId: string | null;
+    person: CreatePersonRequest;
+  } {
+    const { parentId, ...person } = input;
+    return { parentId: parentId ?? null, person };
   }
 
   // Create a new family
@@ -115,7 +236,7 @@ class FamilyService {
 
     const family = await this.createFamilyWithMembers(father, mother, children);
 
-    return this.mapToResponse(family);
+    return this.mapToResponse(family, undefined);
   }
 
   private async createFamilyWithMembers(
@@ -166,13 +287,13 @@ class FamilyService {
     if (!family) {
       return null;
     }
-    return this.mapToResponse(family);
+    return this.mapToResponse(family, undefined);
   }
 
   // Get families with filters
   async getFamilies(filters: GetFamiliesQuery): Promise<FamilyResponse[]> {
     const families = await familyRepository.findFamilies(filters);
-    return families.map((family) => this.mapToResponse(family));
+    return families.map((family) => this.mapToResponse(family, undefined));
   }
 
   // Update family children
@@ -250,7 +371,7 @@ class FamilyService {
       await familyRepository.createParentChildRelationships(mother.personId, mother.person.name, child.id, child.name);
     }
 
-    return this.mapToResponse(updatedFamily);
+    return this.mapToResponse(updatedFamily, undefined);
   }
 
   // Update family father
@@ -345,7 +466,7 @@ class FamilyService {
       await familyRepository.createParentChildRelationships(fatherId, newFather.name, child.personId, child.person.name);
     }
 
-    return this.mapToResponse(updatedFamily);
+    return this.mapToResponse(updatedFamily, undefined);
   }
 
   // Update family mother
@@ -440,7 +561,7 @@ class FamilyService {
       await familyRepository.createParentChildRelationships(motherId, newMother.name, child.personId, child.person.name);
     }
 
-    return this.mapToResponse(updatedFamily);
+    return this.mapToResponse(updatedFamily, undefined);
   }
 
   // Delete family
@@ -489,7 +610,10 @@ class FamilyService {
   }
 
   // Map family to response
-  private mapToResponse(family: FamilyWithMembers): FamilyResponse {
+  private mapToResponse(
+    family: FamilyWithMembers,
+    childSpouses?: Map<string, Person>
+  ): FamilyResponse {
     const parents = family.familyMembers.filter(
       (m) => m.role === FamilyMemberRole.PARENT
     );
@@ -497,15 +621,29 @@ class FamilyService {
     const mother = parents.find((m) => m.person.gender === Gender.WOMAN) ?? null;
     const children = family.familyMembers
       .filter((m) => m.role === FamilyMemberRole.CHILD)
-      .map((m) => ({
-        id: m.person.id,
-        name: m.person.name,
-        gender: m.person.gender,
-        birthDate: m.person.birthDate,
-        deathDate: m.person.deathDate,
-        bio: m.person.bio,
-        profilePictureUrl: m.person.profilePictureUrl,
-      }));
+      .map((m) => {
+        const spousePerson = childSpouses?.get(m.person.id);
+        return {
+          id: m.person.id,
+          name: m.person.name,
+          gender: m.person.gender,
+          birthDate: m.person.birthDate,
+          deathDate: m.person.deathDate,
+          bio: m.person.bio,
+          profilePictureUrl: m.person.profilePictureUrl,
+          spouse: spousePerson
+            ? {
+                id: spousePerson.id,
+                name: spousePerson.name,
+                gender: spousePerson.gender,
+                birthDate: spousePerson.birthDate,
+                deathDate: spousePerson.deathDate,
+                bio: spousePerson.bio,
+                profilePictureUrl: spousePerson.profilePictureUrl,
+              }
+            : null,
+        };
+      });
 
     return {
       id: family.id,

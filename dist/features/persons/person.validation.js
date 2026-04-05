@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePersonValidation = exports.listPersonsQueryValidation = exports.buildCreatePersonValidation = exports.createPersonValidation = void 0;
+exports.updatePersonValidation = exports.listPersonsQueryValidation = exports.buildCreateFamilyParentValidation = exports.buildCreatePersonValidationIfParentExists = exports.buildCreatePersonValidation = exports.createPersonValidation = void 0;
 const express_validator_1 = require("express-validator");
 const genderEnumValidation = (0, express_validator_1.body)("gender", "gender must be MAN or WOMAN").isIn(["MAN", "WOMAN"]);
 const profilePictureUrlValidation = (0, express_validator_1.body)("profilePictureUrl", "profilePictureUrl must be a valid URL")
@@ -12,8 +12,13 @@ exports.createPersonValidation = [
     genderEnumValidation,
     (0, express_validator_1.body)("birthDate", "birthDate is required").exists(),
     (0, express_validator_1.body)("birthDate", "birthDate must be a valid date").isDate(),
-    (0, express_validator_1.body)("deathDate", "deathDate must be a valid date").optional().isDate(),
+    (0, express_validator_1.body)("deathDate", "deathDate must be a valid date")
+        .optional({ nullable: true })
+        .isDate(),
     profilePictureUrlValidation,
+    (0, express_validator_1.body)("parentId", "parentId must be a valid UUID")
+        .optional({ nullable: true })
+        .isUUID(),
 ];
 const buildCreatePersonValidation = (prefix = "") => [
     (0, express_validator_1.body)(`${prefix}name`, "name is required").exists(),
@@ -22,13 +27,63 @@ const buildCreatePersonValidation = (prefix = "") => [
     (0, express_validator_1.body)(`${prefix}birthDate`, "birthDate is required").exists(),
     (0, express_validator_1.body)(`${prefix}birthDate`, "birthDate must be a valid date").isDate(),
     (0, express_validator_1.body)(`${prefix}deathDate`, "deathDate must be a valid date")
-        .optional()
+        .optional({ nullable: true })
         .isDate(),
+    (0, express_validator_1.body)(`${prefix}bio`, "bio must be a string")
+        .optional({ nullable: true })
+        .isString(),
     (0, express_validator_1.body)(`${prefix}profilePictureUrl`, "profilePictureUrl must be a valid URL")
-        .optional()
+        .optional({ nullable: true })
         .isURL(),
 ];
 exports.buildCreatePersonValidation = buildCreatePersonValidation;
+const buildCreatePersonValidationIfParentExists = (fieldPrefix) => {
+    const parentPath = fieldPrefix.endsWith(".")
+        ? fieldPrefix.slice(0, -1)
+        : fieldPrefix;
+    const whenPresent = (0, express_validator_1.body)(parentPath).exists().isObject();
+    return [
+        (0, express_validator_1.body)(`${fieldPrefix}name`)
+            .if(whenPresent)
+            .trim()
+            .notEmpty()
+            .withMessage("name is required when spouse is provided"),
+        (0, express_validator_1.body)(`${fieldPrefix}gender`)
+            .if(whenPresent)
+            .exists()
+            .withMessage("gender is required when spouse is provided")
+            .isIn(["MAN", "WOMAN"])
+            .withMessage("gender must be MAN or WOMAN"),
+        (0, express_validator_1.body)(`${fieldPrefix}birthDate`)
+            .if(whenPresent)
+            .exists()
+            .withMessage("birthDate is required when spouse is provided")
+            .isDate()
+            .withMessage("birthDate must be a valid date"),
+        (0, express_validator_1.body)(`${fieldPrefix}deathDate`)
+            .if(whenPresent)
+            .optional({ nullable: true })
+            .isDate()
+            .withMessage("deathDate must be a valid date"),
+        (0, express_validator_1.body)(`${fieldPrefix}bio`)
+            .if(whenPresent)
+            .optional({ nullable: true })
+            .isString(),
+        (0, express_validator_1.body)(`${fieldPrefix}profilePictureUrl`)
+            .if(whenPresent)
+            .optional({ nullable: true })
+            .isURL()
+            .withMessage("profilePictureUrl must be a valid URL"),
+    ];
+};
+exports.buildCreatePersonValidationIfParentExists = buildCreatePersonValidationIfParentExists;
+const buildCreateFamilyParentValidation = (prefix) => [
+    (0, express_validator_1.body)(`${prefix}parentId`, "parentId must be a valid UUID")
+        .optional({ nullable: true })
+        .isUUID(),
+    ...(0, exports.buildCreatePersonValidation)(prefix),
+];
+exports.buildCreateFamilyParentValidation = buildCreateFamilyParentValidation;
 exports.listPersonsQueryValidation = [
     (0, express_validator_1.query)("name").optional().isString().withMessage("name must be a string"),
     (0, express_validator_1.query)("gender").optional().isIn(["MAN", "WOMAN"]).withMessage("gender must be MAN or WOMAN"),

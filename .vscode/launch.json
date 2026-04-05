@@ -11,18 +11,21 @@
         "-r",
         "tsconfig-paths/register"
       ],
-      "args": ["${workspaceFolder}/src/app.ts"],
+      "program": "${workspaceFolder}/src/app.ts",
       "cwd": "${workspaceFolder}",
       "env": {
         "NODE_ENV": "development"
       },
       "envFile": "${workspaceFolder}/.env",
       "sourceMaps": true,
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
       "skipFiles": ["<node_internals>/**"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
-      "restart": false,
-      "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+      "restart": false
     },
     {
       "name": "Debug Current TypeScript File",
@@ -34,7 +37,7 @@
         "-r",
         "tsconfig-paths/register"
       ],
-      "args": ["${file}"],
+      "program": "${file}",
       "cwd": "${workspaceFolder}",
       "env": {
         "NODE_ENV": "development"
@@ -59,12 +62,16 @@
       "name": "Debug with Nodemon",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "nodemon",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/nodemon",
       "runtimeArgs": [
+        "--watch",
+        "src",
+        "--ext",
+        "ts",
         "--exec",
-        "node -r ts-node/register -r tsconfig-paths/register --inspect-brk"
+        "node -r ts-node/register -r tsconfig-paths/register --inspect"
       ],
-      "args": ["${workspaceFolder}/src/app.ts"],
+      "program": "${workspaceFolder}/src/app.ts",
       "cwd": "${workspaceFolder}",
       "env": {
         "NODE_ENV": "development"
@@ -86,7 +93,7 @@
         "-r",
         "tsconfig-paths/register"
       ],
-      "args": ["${workspaceFolder}/prisma/seed.ts"],
+      "program": "${workspaceFolder}/prisma/seed.ts",
       "cwd": "${workspaceFolder}",
       "env": {
         "NODE_ENV": "development"

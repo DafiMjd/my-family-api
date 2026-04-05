@@ -1,5 +1,5 @@
 import { Gender, FamilyMemberRole } from "@prisma/client";
-import { CreatePersonRequest } from "./person.types";
+import { CreatePersonRequest, CreatePersonRequestWithSpouse } from "./person.types";
 
 // Database model types
 export type Family = {
@@ -34,11 +34,6 @@ export type FamilyWithMembers = Family & {
 
 // PARENT role covers both father (MAN) and mother (WOMAN) — gender distinguishes them
 
-export interface CreateFamilyPersonRequest {
-  id?: string | null;
-  person?: CreatePersonRequest | null;
-}
-
 // Request types
 export interface CreateFamilyRequestById {
   fatherId: string;
@@ -48,11 +43,24 @@ export interface CreateFamilyRequestById {
   description?: string | null;
 }
 
-// Create family by full person payloads
+/**
+ * Father or mother row: person fields plus optional parentId (existing person who is their parent).
+ * If parentId is null, this parent is treated as first generation for that branch.
+ */
+export interface CreateFamilyParentInput extends CreatePersonRequest {
+  parentId?: string | null;
+}
+
+/**
+ * POST /api/family/one — create family with new persons only.
+ * Default name: `${father.name} & ${mother.name}'s Family` when name is empty or omitted.
+ */
 export interface CreateFamilyRequest {
-  father: CreateFamilyPersonRequest;
-  mother: CreateFamilyPersonRequest;
-  children: CreateFamilyPersonRequest[];
+  father: CreateFamilyParentInput;
+  mother: CreateFamilyParentInput;
+  children: CreatePersonRequestWithSpouse[];
+  name?: string;
+  description?: string | null;
 }
 
 export interface UpdateFamilyChildrenRequest {
@@ -108,6 +116,16 @@ export interface FamilyResponse {
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
+    /** Present when a spouse was created with this child on POST /api/family/one; otherwise null. */
+    spouse: {
+      id: string;
+      name: string;
+      gender: Gender;
+      birthDate: Date;
+      deathDate: Date | null;
+      bio: string | null;
+      profilePictureUrl: string | null;
+    } | null;
   }>;
   createdAt: string;
   updatedAt: string;

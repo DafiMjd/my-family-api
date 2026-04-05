@@ -4,6 +4,7 @@ import {
   UpdatePersonRequest,
   Gender,
 } from "@/shared/types/person.types";
+import { ParentType, RelationshipType } from "@prisma/client";
 import prisma from "@/shared/database/prisma";
 
 export interface PersonFilters {
@@ -58,6 +59,63 @@ class PersonRepository {
         deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
       },
     });
+  }
+
+  async upsertBiologicalParentChild(
+    parentId: string,
+    parentName: string,
+    childId: string,
+    childName: string
+  ): Promise<void> {
+    await prisma.parentChild.upsert({
+      where: { parentId_childId: { parentId, childId } },
+      update: { parentName, childName },
+      create: {
+        parentId,
+        parentName,
+        childId,
+        childName,
+        type: ParentType.BIOLOGICAL,
+      },
+    });
+  }
+
+  /**
+   * Links `child` to `designatedParent`, and if that person has an active spouse,
+   * links the child to the spouse as well (both biological parent_child rows).
+   */
+  async linkBiologicalParentsForDesignatedParent(
+    childId: string,
+    childName: string,
+    designatedParent: { id: string; name: string }
+  ): Promise<void> {
+    await this.upsertBiologicalParentChild(
+      designatedParent.id,
+      designatedParent.name,
+      childId,
+      childName
+    );
+
+    const marriage = await prisma.relationship.findFirst({
+      where: {
+        personId: designatedParent.id,
+        type: RelationshipType.SPOUSE,
+        endDate: null,
+      },
+      select: {
+        relatedPersonId: true,
+        relatedPersonName: true,
+      },
+    });
+
+    if (marriage) {
+      await this.upsertBiologicalParentChild(
+        marriage.relatedPersonId,
+        marriage.relatedPersonName,
+        childId,
+        childName
+      );
+    }
   }
 
   async createMany(datas: CreatePersonRequest[]): Promise<Person[]> {

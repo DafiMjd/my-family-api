@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
 const prisma_1 = __importDefault(require("@/shared/database/prisma"));
 class PersonRepository {
     async findAll(filters) {
@@ -39,6 +40,36 @@ class PersonRepository {
                 deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
             },
         });
+    }
+    async upsertBiologicalParentChild(parentId, parentName, childId, childName) {
+        await prisma_1.default.parentChild.upsert({
+            where: { parentId_childId: { parentId, childId } },
+            update: { parentName, childName },
+            create: {
+                parentId,
+                parentName,
+                childId,
+                childName,
+                type: client_1.ParentType.BIOLOGICAL,
+            },
+        });
+    }
+    async linkBiologicalParentsForDesignatedParent(childId, childName, designatedParent) {
+        await this.upsertBiologicalParentChild(designatedParent.id, designatedParent.name, childId, childName);
+        const marriage = await prisma_1.default.relationship.findFirst({
+            where: {
+                personId: designatedParent.id,
+                type: client_1.RelationshipType.SPOUSE,
+                endDate: null,
+            },
+            select: {
+                relatedPersonId: true,
+                relatedPersonName: true,
+            },
+        });
+        if (marriage) {
+            await this.upsertBiologicalParentChild(marriage.relatedPersonId, marriage.relatedPersonName, childId, childName);
+        }
     }
     async createMany(datas) {
         return await prisma_1.default.person.createManyAndReturn({

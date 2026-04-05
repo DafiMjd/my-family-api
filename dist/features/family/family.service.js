@@ -8,39 +8,90 @@ const person_repository_1 = __importDefault(require("@/features/persons/person.r
 const client_1 = require("@prisma/client");
 class FamilyService {
     async createFamily(data) {
-        const { father, mother, children } = data;
-        if (!father.id && !father.person) {
-            throw new Error("Provide either father ID or father person object");
+        const fatherIn = this.splitFamilyParentInput(data.father);
+        const motherIn = this.splitFamilyParentInput(data.mother);
+        const { children: childrenInput, description } = data;
+        if (fatherIn.person.gender !== client_1.Gender.MAN) {
+            throw new Error("Father must be male");
         }
-        if (!mother.id && !mother.person) {
-            throw new Error("Provide either mother ID or mother person object");
+        if (motherIn.person.gender !== client_1.Gender.WOMAN) {
+            throw new Error("Mother must be female");
         }
-        if (children.length > 0 &&
-            children.some((child) => !child.id && !child.person)) {
-            throw new Error("Provide either child ID or child person object");
+        const grandparentIds = [
+            ...new Set([fatherIn.parentId, motherIn.parentId].filter((id) => Boolean(id))),
+        ];
+        const grandparentById = new Map();
+        if (grandparentIds.length > 0) {
+            const grandparents = await person_repository_1.default.findPersonsByIds(grandparentIds);
+            for (const p of grandparents) {
+                grandparentById.set(p.id, { id: p.id, name: p.name });
+            }
+            if (grandparentById.size !== grandparentIds.length) {
+                throw new Error("Grandparent not found: parentId must reference an existing person");
+            }
         }
-        const createdFather = father.id
-            ? await person_repository_1.default.findById(father.id)
-            : await person_repository_1.default.create(father.person);
-        if (!createdFather) {
-            throw new Error(`Father with ID ${father.id} not found`);
+        const [father, mother] = await Promise.all([
+            person_repository_1.default.create(fatherIn.person),
+            person_repository_1.default.create(motherIn.person),
+        ]);
+        const grandparentLinks = [];
+        if (fatherIn.parentId) {
+            const gp = grandparentById.get(fatherIn.parentId);
+            grandparentLinks.push(person_repository_1.default.linkBiologicalParentsForDesignatedParent(father.id, father.name, gp));
         }
-        const createdMother = mother.id
-            ? await person_repository_1.default.findById(mother.id)
-            : await person_repository_1.default.create(mother.person);
-        if (!createdMother) {
-            throw new Error(`Mother with ID ${mother.id} not found`);
+        if (motherIn.parentId) {
+            const gp = grandparentById.get(motherIn.parentId);
+            grandparentLinks.push(person_repository_1.default.linkBiologicalParentsForDesignatedParent(mother.id, mother.name, gp));
         }
-        const childrenIds = children
-            .filter((child) => child.id)
-            .map((child) => child.id);
-        const childrenToCreate = children
-            .filter((child) => !child.id)
-            .map((child) => child.person);
-        const existingChildren = await person_repository_1.default.findPersonsByIds(childrenIds);
-        const createdChildren = await person_repository_1.default.createMany(childrenToCreate);
-        const family = await this.createFamilyWithMembers(createdFather, createdMother, [...createdChildren, ...existingChildren]);
-        return this.mapToResponse(family);
+        await Promise.all(grandparentLinks);
+        const childPersonPayloads = childrenInput.map((row) => this.stripSpouseFromChildInput(row));
+        const children = childPersonPayloads.length > 0
+            ? await person_repository_1.default.createMany(childPersonPayloads)
+            : [];
+        const childSpouses = await this.createSpousesForChildren(childrenInput, children);
+        const familyName = data.name !== undefined && String(data.name).trim() !== ""
+            ? String(data.name).trim()
+            : `${father.name} & ${mother.name}'s Family`;
+        const family = await this.createFamilyWithMembers(father, mother, children, familyName, description ?? null);
+        return this.mapToResponse(family, childSpouses);
+    }
+    stripSpouseFromChildInput(row) {
+        const { spouse: _s, ...person } = row;
+        return person;
+    }
+    async createSpousesForChildren(childrenInput, children) {
+        const result = new Map();
+        if (childrenInput.length !== children.length) {
+            throw new Error("Invalid internal state: children length mismatch");
+        }
+        const pairs = [];
+        for (let i = 0; i < childrenInput.length; i++) {
+            const spouseReq = childrenInput[i].spouse;
+            if (!spouseReq) {
+                continue;
+            }
+            const child = children[i];
+            if (spouseReq.gender === child.gender) {
+                throw new Error("Child and spouse must have different genders (MAN and WOMAN)");
+            }
+            pairs.push({ child, spouseReq });
+        }
+        if (pairs.length === 0) {
+            return result;
+        }
+        const spouses = await person_repository_1.default.createMany(pairs.map((p) => p.spouseReq));
+        await Promise.all(pairs.map(({ child }, index) => {
+            const spouse = spouses[index];
+            return family_repository_1.default.createSpouseRelationship(child.id, child.name, spouse.id, spouse.name, new Date());
+        }));
+        for (let i = 0; i < pairs.length; i++) {
+            result.set(pairs[i].child.id, spouses[i]);
+        }
+        return result;
+    }
+    splitFamilyParentInput(input) {
+        const { parentId, ...person } = input;
+        return { parentId: parentId ?? null, person };
     }
     async createFamilyById(data) {
         const { fatherId, motherId, childrenIds, name, description } = data;
@@ -74,7 +125,7 @@ class FamilyService {
             return child;
         }));
         const family = await this.createFamilyWithMembers(father, mother, children);
-        return this.mapToResponse(family);
+        return this.mapToResponse(family, undefined);
     }
     async createFamilyWithMembers(father, mother, children, name, description) {
         const familyName = name || `${father.name} & ${mother.name}'s Family`;
@@ -94,11 +145,11 @@ class FamilyService {
         if (!family) {
             return null;
         }
-        return this.mapToResponse(family);
+        return this.mapToResponse(family, undefined);
     }
     async getFamilies(filters) {
         const families = await family_repository_1.default.findFamilies(filters);
-        return families.map((family) => this.mapToResponse(family));
+        return families.map((family) => this.mapToResponse(family, undefined));
     }
     async updateFamilyChildren(familyId, data) {
         const { childrenIds } = data;
@@ -139,7 +190,7 @@ class FamilyService {
             await family_repository_1.default.createParentChildRelationships(father.personId, father.person.name, child.id, child.name);
             await family_repository_1.default.createParentChildRelationships(mother.personId, mother.person.name, child.id, child.name);
         }
-        return this.mapToResponse(updatedFamily);
+        return this.mapToResponse(updatedFamily, undefined);
     }
     async updateFamilyFather(familyId, data) {
         const { fatherId } = data;
@@ -179,7 +230,7 @@ class FamilyService {
         for (const child of children) {
             await family_repository_1.default.createParentChildRelationships(fatherId, newFather.name, child.personId, child.person.name);
         }
-        return this.mapToResponse(updatedFamily);
+        return this.mapToResponse(updatedFamily, undefined);
     }
     async updateFamilyMother(familyId, data) {
         const { motherId } = data;
@@ -219,7 +270,7 @@ class FamilyService {
         for (const child of children) {
             await family_repository_1.default.createParentChildRelationships(motherId, newMother.name, child.personId, child.person.name);
         }
-        return this.mapToResponse(updatedFamily);
+        return this.mapToResponse(updatedFamily, undefined);
     }
     async deleteFamily(familyId, options = {}) {
         const { deleteSpouseRelationship = false } = options;
@@ -241,21 +292,35 @@ class FamilyService {
         }
         return await family_repository_1.default.deleteFamily(familyId);
     }
-    mapToResponse(family) {
+    mapToResponse(family, childSpouses) {
         const parents = family.familyMembers.filter((m) => m.role === client_1.FamilyMemberRole.PARENT);
         const father = parents.find((m) => m.person.gender === client_1.Gender.MAN) ?? null;
         const mother = parents.find((m) => m.person.gender === client_1.Gender.WOMAN) ?? null;
         const children = family.familyMembers
             .filter((m) => m.role === client_1.FamilyMemberRole.CHILD)
-            .map((m) => ({
-            id: m.person.id,
-            name: m.person.name,
-            gender: m.person.gender,
-            birthDate: m.person.birthDate,
-            deathDate: m.person.deathDate,
-            bio: m.person.bio,
-            profilePictureUrl: m.person.profilePictureUrl,
-        }));
+            .map((m) => {
+            const spousePerson = childSpouses?.get(m.person.id);
+            return {
+                id: m.person.id,
+                name: m.person.name,
+                gender: m.person.gender,
+                birthDate: m.person.birthDate,
+                deathDate: m.person.deathDate,
+                bio: m.person.bio,
+                profilePictureUrl: m.person.profilePictureUrl,
+                spouse: spousePerson
+                    ? {
+                        id: spousePerson.id,
+                        name: spousePerson.name,
+                        gender: spousePerson.gender,
+                        birthDate: spousePerson.birthDate,
+                        deathDate: spousePerson.deathDate,
+                        bio: spousePerson.bio,
+                        profilePictureUrl: spousePerson.profilePictureUrl,
+                    }
+                    : null,
+            };
+        });
         return {
             id: family.id,
             name: family.name,

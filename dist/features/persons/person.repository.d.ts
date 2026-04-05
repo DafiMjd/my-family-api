@@ -14,6 +14,11 @@ declare class PersonRepository {
     findById(id: string): Promise<Person | null>;
     findByName(name: string): Promise<Person | null>;
     create(personData: CreatePersonRequest): Promise<Person>;
+    upsertBiologicalParentChild(parentId: string, parentName: string, childId: string, childName: string): Promise<void>;
+    linkBiologicalParentsForDesignatedParent(childId: string, childName: string, designatedParent: {
+        id: string;
+        name: string;
+    }): Promise<void>;
     createMany(datas: CreatePersonRequest[]): Promise<Person[]>;
     update(id: string, personData: UpdatePersonRequest): Promise<Person | null>;
     delete(id: string): Promise<boolean>;

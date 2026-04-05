@@ -1,5 +1,9 @@
 import { body, query } from "express-validator";
-import { buildCreatePersonValidation } from "../persons/person.validation";
+import {
+  buildCreatePersonValidation,
+  buildCreateFamilyParentValidation,
+  buildCreatePersonValidationIfParentExists,
+} from "../persons/person.validation";
 
 export const createFamilyValidation = [
   body("father")
@@ -12,14 +16,23 @@ export const createFamilyValidation = [
     .withMessage("mother object is required")
     .isObject()
     .withMessage("mother must be an object"),
-
-  // Reuse person validations for nested father & mother
-  // ...buildCreatePersonValidation("father."),
-  // ...buildCreatePersonValidation("mother."),
+  ...buildCreateFamilyParentValidation("father."),
+  ...buildCreateFamilyParentValidation("mother."),
 
   body("children").isArray().withMessage("children must be an array"),
   body("children.*").isObject().withMessage("Each child must be an object"),
-  // ...buildCreatePersonValidation("children.*"),
+  ...buildCreatePersonValidation("children.*."),
+  body("children.*.spouse")
+    .optional({ nullable: true })
+    .isObject()
+    .withMessage("spouse must be an object when provided"),
+  ...buildCreatePersonValidationIfParentExists("children.*.spouse."),
+
+  body("name").optional().isString().withMessage("name must be a string"),
+  body("description")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("description must be a string"),
 ];
 
 // Validation for creating a family

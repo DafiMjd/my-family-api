@@ -1,7 +1,7 @@
 import personRepository, { PersonFilters, PaginatedPersons } from "./person.repository";
 import {
   Person,
-  CreatePersonRequest,
+  CreatePersonApiRequest,
   UpdatePersonRequest,
   PersonResponse,
   Gender,
@@ -23,8 +23,27 @@ class PersonService {
     return person ? this.mapPersonToResponse(person) : null;
   }
 
-  async createPerson(personData: CreatePersonRequest): Promise<PersonResponse> {
-    const person = await personRepository.create(personData);
+  async createPerson(personData: CreatePersonApiRequest): Promise<PersonResponse> {
+    const { parentId, ...personFields } = personData;
+
+    let parent: Person | null = null;
+    if (parentId) {
+      parent = await personRepository.findById(parentId);
+      if (!parent) {
+        throw new Error(`Parent person with ID ${parentId} not found`);
+      }
+    }
+
+    const person = await personRepository.create(personFields);
+
+    if (parent) {
+      await personRepository.linkBiologicalParentsForDesignatedParent(
+        person.id,
+        person.name,
+        { id: parent.id, name: parent.name }
+      );
+    }
+
     return this.mapPersonToResponse(person);
   }
 

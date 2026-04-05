@@ -14,7 +14,18 @@ class PersonService {
         return person ? this.mapPersonToResponse(person) : null;
     }
     async createPerson(personData) {
-        const person = await person_repository_1.default.create(personData);
+        const { parentId, ...personFields } = personData;
+        let parent = null;
+        if (parentId) {
+            parent = await person_repository_1.default.findById(parentId);
+            if (!parent) {
+                throw new Error(`Parent person with ID ${parentId} not found`);
+            }
+        }
+        const person = await person_repository_1.default.create(personFields);
+        if (parent) {
+            await person_repository_1.default.linkBiologicalParentsForDesignatedParent(person.id, person.name, { id: parent.id, name: parent.name });
+        }
         return this.mapPersonToResponse(person);
     }
     async updatePerson(id, personData) {

@@ -1,5 +1,5 @@
 import { Gender, FamilyMemberRole } from "@prisma/client";
-import { CreatePersonRequest } from "./person.types";
+import { CreatePersonRequest, CreatePersonRequestWithSpouse } from "./person.types";
 export type Family = {
     id: string;
     name: string;
@@ -27,10 +27,6 @@ export type FamilyWithMembers = Family & {
         };
     }>;
 };
-export interface CreateFamilyPersonRequest {
-    id?: string | null;
-    person?: CreatePersonRequest | null;
-}
 export interface CreateFamilyRequestById {
     fatherId: string;
     motherId: string;
@@ -38,10 +34,15 @@ export interface CreateFamilyRequestById {
     name?: string;
     description?: string | null;
 }
+export interface CreateFamilyParentInput extends CreatePersonRequest {
+    parentId?: string | null;
+}
 export interface CreateFamilyRequest {
-    father: CreateFamilyPersonRequest;
-    mother: CreateFamilyPersonRequest;
-    children: CreateFamilyPersonRequest[];
+    father: CreateFamilyParentInput;
+    mother: CreateFamilyParentInput;
+    children: CreatePersonRequestWithSpouse[];
+    name?: string;
+    description?: string | null;
 }
 export interface UpdateFamilyChildrenRequest {
     childrenIds: string[];
@@ -90,6 +91,15 @@ export interface FamilyResponse {
         deathDate: Date | null;
         bio: string | null;
         profilePictureUrl: string | null;
+        spouse: {
+            id: string;
+            name: string;
+            gender: Gender;
+            birthDate: Date;
+            deathDate: Date | null;
+            bio: string | null;
+            profilePictureUrl: string | null;
+        } | null;
     }>;
     createdAt: string;
     updatedAt: string;

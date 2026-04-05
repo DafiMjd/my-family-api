@@ -15,6 +15,10 @@ export type Person = {
 
 export { Gender };
 
+export interface CreatePersonRequestWithSpouse extends CreatePersonRequest {
+  spouse?: CreatePersonRequest;
+}
+
 export interface CreatePersonRequest {
   name: string;
   gender: Gender;
@@ -22,6 +26,11 @@ export interface CreatePersonRequest {
   deathDate?: Date | string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;
+}
+
+/** POST /api/person/one — person fields plus optional parent link. */
+export interface CreatePersonApiRequest extends CreatePersonRequest {
+  parentId?: string | null;
 }
 
 export interface UpdatePersonRequest {

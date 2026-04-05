@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import personService from "./person.service";
 import {
-  CreatePersonRequest,
-  PersonResponse,
+  CreatePersonApiRequest,
   UpdatePersonRequest,
 } from "@/shared/types/person.types";
 import { validationResult } from "express-validator";
@@ -93,7 +92,7 @@ class PersonController {
         return;
       }
 
-      const personData: CreatePersonRequest = req.body;
+      const personData: CreatePersonApiRequest = req.body;
       const person = await personService.createPerson(personData);
       res.status(201).json({
         success: true,
@@ -101,8 +100,10 @@ class PersonController {
         message: "Person created successfully",
       });
     } catch (error) {
-      const statusCode =
-        error instanceof Error && error.message.includes("already exists")
+      const message = error instanceof Error ? error.message : "";
+      const statusCode = message.includes("not found")
+        ? 404
+        : message.includes("already exists")
           ? 409
           : 500;
       res.status(statusCode).json({

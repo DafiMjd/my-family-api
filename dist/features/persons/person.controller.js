@@ -92,9 +92,12 @@ class PersonController {
             });
         }
         catch (error) {
-            const statusCode = error instanceof Error && error.message.includes("already exists")
-                ? 409
-                : 500;
+            const message = error instanceof Error ? error.message : "";
+            const statusCode = message.includes("not found")
+                ? 404
+                : message.includes("already exists")
+                    ? 409
+                    : 500;
             res.status(statusCode).json({
                 success: false,
                 error: "Failed to create person",
