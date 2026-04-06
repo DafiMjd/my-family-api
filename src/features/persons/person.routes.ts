@@ -3,6 +3,7 @@ import { requireAccessJwt } from "@/shared/middleware/require-access-jwt.middlew
 import personController from "./person.controller";
 import {
   createPersonValidation,
+  latestPersonsQueryValidation,
   listPersonsQueryValidation,
   updatePersonValidation,
 } from "./person.validation";
@@ -22,6 +23,13 @@ router.get("/living/list", personController.getLivingPersons.bind(personControll
 router.get(
   "/deceased/list",
   personController.getDeceasedPersons.bind(personController)
+);
+
+// GET /api/person/latest/list - Get latest created persons (paginated)
+router.get(
+  "/latest/list",
+  latestPersonsQueryValidation,
+  personController.getLatestPersons.bind(personController)
 );
 
 // GET /api/person/one - Get person by ID (query param)

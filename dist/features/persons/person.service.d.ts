@@ -1,4 +1,4 @@
-import { PersonFilters } from "./person.repository";
+import { PersonFilters, PaginationQuery } from "./person.repository";
 import { CreatePersonApiRequest, UpdatePersonRequest, PersonResponse } from "@/shared/types/person.types";
 export interface PaginatedPersonsResponse {
     data: PersonResponse[];
@@ -6,6 +6,7 @@ export interface PaginatedPersonsResponse {
 }
 declare class PersonService {
     getAllPersons(filters?: PersonFilters): Promise<PaginatedPersonsResponse>;
+    getLatestPersons(pagination?: PaginationQuery): Promise<PaginatedPersonsResponse>;
     getPersonById(id: string): Promise<PersonResponse | null>;
     createPerson(personData: CreatePersonApiRequest): Promise<PersonResponse>;
     updatePerson(id: string, personData: UpdatePersonRequest): Promise<PersonResponse | null>;

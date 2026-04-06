@@ -29,7 +29,7 @@ class FamilyRepository {
         });
     }
     async findFamilies(filters) {
-        const { fatherId, motherId, childrenId } = filters;
+        const { fatherId, motherId, childrenId, limit, offset } = filters;
         const whereConditions = {};
         if (fatherId || motherId || childrenId) {
             whereConditions.familyMembers = {
@@ -48,27 +48,33 @@ class FamilyRepository {
                 },
             };
         }
-        return await prisma_1.default.family.findMany({
-            where: whereConditions,
-            include: {
-                familyMembers: {
-                    include: {
-                        person: {
-                            select: {
-                                id: true,
-                                name: true,
-                                gender: true,
-                                birthDate: true,
-                                deathDate: true,
-                                bio: true,
-                                profilePictureUrl: true,
+        const [data, total] = await prisma_1.default.$transaction([
+            prisma_1.default.family.findMany({
+                where: whereConditions,
+                include: {
+                    familyMembers: {
+                        include: {
+                            person: {
+                                select: {
+                                    id: true,
+                                    name: true,
+                                    gender: true,
+                                    birthDate: true,
+                                    deathDate: true,
+                                    bio: true,
+                                    profilePictureUrl: true,
+                                },
                             },
                         },
                     },
                 },
-            },
-            orderBy: { createdAt: "desc" },
-        });
+                orderBy: { createdAt: "desc" },
+                ...(limit !== undefined && { take: limit }),
+                ...(offset !== undefined && { skip: offset }),
+            }),
+            prisma_1.default.family.count({ where: whereConditions }),
+        ]);
+        return { data, total };
     }
     async createFamily(name, description, fatherId, motherId, childrenIds) {
         return await prisma_1.default.family.create({

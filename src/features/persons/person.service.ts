@@ -1,4 +1,7 @@
-import personRepository, { PersonFilters, PaginatedPersons } from "./person.repository";
+import personRepository, {
+  PersonFilters,
+  PaginationQuery,
+} from "./person.repository";
 import {
   Person,
   CreatePersonApiRequest,
@@ -15,6 +18,13 @@ export interface PaginatedPersonsResponse {
 class PersonService {
   async getAllPersons(filters?: PersonFilters): Promise<PaginatedPersonsResponse> {
     const { data, total } = await personRepository.findAll(filters);
+    return { data: data.map(this.mapPersonToResponse), total };
+  }
+
+  async getLatestPersons(
+    pagination?: PaginationQuery
+  ): Promise<PaginatedPersonsResponse> {
+    const { data, total } = await personRepository.findLatestCreated(pagination);
     return { data: data.map(this.mapPersonToResponse), total };
   }
 

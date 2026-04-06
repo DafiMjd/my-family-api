@@ -22,6 +22,17 @@ class PersonRepository {
         ]);
         return { data, total };
     }
+    async findLatestCreated(pagination) {
+        const [data, total] = await prisma_1.default.$transaction([
+            prisma_1.default.person.findMany({
+                orderBy: { createdAt: "desc" },
+                ...(pagination?.limit !== undefined && { take: pagination.limit }),
+                ...(pagination?.offset !== undefined && { skip: pagination.offset }),
+            }),
+            prisma_1.default.person.count(),
+        ]);
+        return { data, total };
+    }
     async findById(id) {
         return await prisma_1.default.person.findUnique({
             where: { id },

@@ -12,6 +12,7 @@ router.get("/list", person_validation_1.listPersonsQueryValidation, person_contr
 router.get("/count", person_controller_1.default.getPersonCount.bind(person_controller_1.default));
 router.get("/living/list", person_controller_1.default.getLivingPersons.bind(person_controller_1.default));
 router.get("/deceased/list", person_controller_1.default.getDeceasedPersons.bind(person_controller_1.default));
+router.get("/latest/list", person_validation_1.latestPersonsQueryValidation, person_controller_1.default.getLatestPersons.bind(person_controller_1.default));
 router.get("/one", person_controller_1.default.getPersonById.bind(person_controller_1.default));
 router.post("/one", require_access_jwt_middleware_1.requireAccessJwt, person_validation_1.createPersonValidation, person_controller_1.default.createPerson.bind(person_controller_1.default));
 router.put("/one", require_access_jwt_middleware_1.requireAccessJwt, person_validation_1.updatePersonValidation, person_controller_1.default.updatePerson.bind(person_controller_1.default));

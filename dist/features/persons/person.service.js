@@ -9,6 +9,10 @@ class PersonService {
         const { data, total } = await person_repository_1.default.findAll(filters);
         return { data: data.map(this.mapPersonToResponse), total };
     }
+    async getLatestPersons(pagination) {
+        const { data, total } = await person_repository_1.default.findLatestCreated(pagination);
+        return { data: data.map(this.mapPersonToResponse), total };
+    }
     async getPersonById(id) {
         const person = await person_repository_1.default.findById(id);
         return person ? this.mapPersonToResponse(person) : null;

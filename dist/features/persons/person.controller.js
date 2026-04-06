@@ -39,6 +39,37 @@ class PersonController {
             });
         }
     }
+    async getLatestPersons(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: "BAD_REQUEST",
+                    message: errors.array(),
+                });
+                return;
+            }
+            const limit = req.query.limit !== undefined ? Number(req.query.limit) : 10;
+            const offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
+            const { data, total } = await person_service_1.default.getLatestPersons({ limit, offset });
+            res.status(200).json({
+                success: true,
+                data,
+                count: data.length,
+                total,
+                limit,
+                offset,
+            });
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                error: "Failed to fetch latest persons",
+                message: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
     async getPersonById(req, res) {
         try {
             const { id } = req.query;

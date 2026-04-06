@@ -291,9 +291,14 @@ class FamilyService {
   }
 
   // Get families with filters
-  async getFamilies(filters: GetFamiliesQuery): Promise<FamilyResponse[]> {
-    const families = await familyRepository.findFamilies(filters);
-    return families.map((family) => this.mapToResponse(family, undefined));
+  async getFamilies(
+    filters: GetFamiliesQuery
+  ): Promise<{ data: FamilyResponse[]; total: number }> {
+    const { data, total } = await familyRepository.findFamilies(filters);
+    return {
+      data: data.map((family) => this.mapToResponse(family, undefined)),
+      total,
+    };
   }
 
   // Update family children

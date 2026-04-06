@@ -19,6 +19,11 @@ export interface PaginatedPersons {
   total: number;
 }
 
+export interface PaginationQuery {
+  limit?: number;
+  offset?: number;
+}
+
 class PersonRepository {
   async findAll(filters?: PersonFilters): Promise<PaginatedPersons> {
     const where = {
@@ -34,6 +39,21 @@ class PersonRepository {
         ...(filters?.offset !== undefined && { skip: filters.offset }),
       }),
       prisma.person.count({ where }),
+    ]);
+
+    return { data, total };
+  }
+
+  async findLatestCreated(
+    pagination?: PaginationQuery
+  ): Promise<PaginatedPersons> {
+    const [data, total] = await prisma.$transaction([
+      prisma.person.findMany({
+        orderBy: { createdAt: "desc" },
+        ...(pagination?.limit !== undefined && { take: pagination.limit }),
+        ...(pagination?.offset !== undefined && { skip: pagination.offset }),
+      }),
+      prisma.person.count(),
     ]);
 
     return { data, total };

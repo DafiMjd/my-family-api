@@ -1,8 +1,12 @@
 import { Relationship, FamilyMemberRole, ParentType } from "@prisma/client";
 import { FamilyWithMembers, GetFamiliesQuery } from "@/shared/types/family.types";
+export interface PaginatedFamilies {
+    data: FamilyWithMembers[];
+    total: number;
+}
 declare class FamilyRepository {
     findById(familyId: string): Promise<FamilyWithMembers | null>;
-    findFamilies(filters: GetFamiliesQuery): Promise<FamilyWithMembers[]>;
+    findFamilies(filters: GetFamiliesQuery): Promise<PaginatedFamilies>;
     createFamily(name: string, description: string | null, fatherId: string, motherId: string, childrenIds: string[]): Promise<FamilyWithMembers>;
     createParentChildRelationships(parentId: string, parentName: string, childId: string, childName: string, type?: ParentType): Promise<void>;
     createSpouseRelationship(personId1: string, personName1: string, personId2: string, personName2: string, startDate: Date): Promise<Relationship[]>;

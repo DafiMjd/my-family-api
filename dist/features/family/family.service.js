@@ -148,8 +148,11 @@ class FamilyService {
         return this.mapToResponse(family, undefined);
     }
     async getFamilies(filters) {
-        const families = await family_repository_1.default.findFamilies(filters);
-        return families.map((family) => this.mapToResponse(family, undefined));
+        const { data, total } = await family_repository_1.default.findFamilies(filters);
+        return {
+            data: data.map((family) => this.mapToResponse(family, undefined)),
+            total,
+        };
     }
     async updateFamilyChildren(familyId, data) {
         const { childrenIds } = data;

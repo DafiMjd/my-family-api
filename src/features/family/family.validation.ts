@@ -106,4 +106,14 @@ export const getFamiliesValidation = [
     .optional()
     .isString()
     .withMessage("childrenId must be a string"),
+  query("limit")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("limit must be a positive integer")
+    .toInt(),
+  query("offset")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("offset must be a non-negative integer")
+    .toInt(),
 ];

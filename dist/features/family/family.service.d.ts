@@ -7,7 +7,10 @@ declare class FamilyService {
     createFamilyById(data: CreateFamilyRequestById): Promise<FamilyResponse>;
     private createFamilyWithMembers;
     getFamilyById(familyId: string): Promise<FamilyResponse | null>;
-    getFamilies(filters: GetFamiliesQuery): Promise<FamilyResponse[]>;
+    getFamilies(filters: GetFamiliesQuery): Promise<{
+        data: FamilyResponse[];
+        total: number;
+    }>;
     updateFamilyChildren(familyId: string, data: UpdateFamilyChildrenRequest): Promise<FamilyResponse>;
     updateFamilyFather(familyId: string, data: UpdateFamilyFatherRequest): Promise<FamilyResponse>;
     updateFamilyMother(familyId: string, data: UpdateFamilyMotherRequest): Promise<FamilyResponse>;

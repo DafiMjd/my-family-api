@@ -60,6 +60,8 @@ export interface GetFamiliesQuery {
     fatherId?: string;
     motherId?: string;
     childrenId?: string;
+    limit?: number;
+    offset?: number;
 }
 export interface FamilyResponse {
     id: string;

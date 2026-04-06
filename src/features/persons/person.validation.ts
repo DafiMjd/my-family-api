@@ -120,6 +120,11 @@ export const listPersonsQueryValidation = [
   query("offset").optional().isInt({ min: 0 }).withMessage("offset must be a non-negative integer").toInt(),
 ];
 
+export const latestPersonsQueryValidation = [
+  query("limit").optional().isInt({ min: 1 }).withMessage("limit must be a positive integer").toInt(),
+  query("offset").optional().isInt({ min: 0 }).withMessage("offset must be a non-negative integer").toInt(),
+];
+
 export const updatePersonValidation = [
   body("name", "name is required").optional(),
   body("gender", "gender is required").optional(),

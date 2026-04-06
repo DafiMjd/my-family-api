@@ -9,8 +9,13 @@ export interface PaginatedPersons {
     data: Person[];
     total: number;
 }
+export interface PaginationQuery {
+    limit?: number;
+    offset?: number;
+}
 declare class PersonRepository {
     findAll(filters?: PersonFilters): Promise<PaginatedPersons>;
+    findLatestCreated(pagination?: PaginationQuery): Promise<PaginatedPersons>;
     findById(id: string): Promise<Person | null>;
     findByName(name: string): Promise<Person | null>;
     create(personData: CreatePersonRequest): Promise<Person>;

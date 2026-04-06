@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 declare class PersonController {
     getAllPersons(req: Request, res: Response): Promise<void>;
+    getLatestPersons(req: Request, res: Response): Promise<void>;
     getPersonById(req: Request, res: Response): Promise<void>;
     createPerson(req: Request, res: Response): Promise<void>;
     updatePerson(req: Request, res: Response): Promise<void>;

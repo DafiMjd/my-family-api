@@ -107,12 +107,17 @@ class FamilyController {
                 fatherId: req.query.fatherId,
                 motherId: req.query.motherId,
                 childrenId: req.query.childrenId,
+                limit: req.query.limit !== undefined ? Number(req.query.limit) : 10,
+                offset: req.query.offset !== undefined ? Number(req.query.offset) : 0,
             };
-            const families = await family_service_1.default.getFamilies(filters);
+            const { data, total } = await family_service_1.default.getFamilies(filters);
             res.status(200).json({
                 success: true,
-                data: families,
-                count: families.length,
+                data,
+                count: data.length,
+                total,
+                limit: filters.limit,
+                offset: filters.offset,
             });
         }
         catch (error) {

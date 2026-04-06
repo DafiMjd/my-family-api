@@ -92,5 +92,15 @@ exports.getFamiliesValidation = [
         .optional()
         .isString()
         .withMessage("childrenId must be a string"),
+    (0, express_validator_1.query)("limit")
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("limit must be a positive integer")
+        .toInt(),
+    (0, express_validator_1.query)("offset")
+        .optional()
+        .isInt({ min: 0 })
+        .withMessage("offset must be a non-negative integer")
+        .toInt(),
 ];
 //# sourceMappingURL=family.validation.js.map

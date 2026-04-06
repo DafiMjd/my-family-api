@@ -10,6 +10,11 @@ import {
   GetFamiliesQuery,
 } from "@/shared/types/family.types";
 
+export interface PaginatedFamilies {
+  data: FamilyWithMembers[];
+  total: number;
+}
+
 class FamilyRepository {
   // Find family by ID with members
   async findById(familyId: string): Promise<FamilyWithMembers | null> {
@@ -36,8 +41,8 @@ class FamilyRepository {
   }
 
   // Find families with filters
-  async findFamilies(filters: GetFamiliesQuery): Promise<FamilyWithMembers[]> {
-    const { fatherId, motherId, childrenId } = filters;
+  async findFamilies(filters: GetFamiliesQuery): Promise<PaginatedFamilies> {
+    const { fatherId, motherId, childrenId, limit, offset } = filters;
 
     // Build where clause dynamically
     const whereConditions: any = {};
@@ -60,27 +65,34 @@ class FamilyRepository {
       };
     }
 
-    return await prisma.family.findMany({
-      where: whereConditions,
-      include: {
-        familyMembers: {
-          include: {
-            person: {
-              select: {
-                id: true,
-                name: true,
-                gender: true,
-                birthDate: true,
-                deathDate: true,
-                bio: true,
-                profilePictureUrl: true,
+    const [data, total] = await prisma.$transaction([
+      prisma.family.findMany({
+        where: whereConditions,
+        include: {
+          familyMembers: {
+            include: {
+              person: {
+                select: {
+                  id: true,
+                  name: true,
+                  gender: true,
+                  birthDate: true,
+                  deathDate: true,
+                  bio: true,
+                  profilePictureUrl: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+        ...(limit !== undefined && { take: limit }),
+        ...(offset !== undefined && { skip: offset }),
+      }),
+      prisma.family.count({ where: whereConditions }),
+    ]);
+
+    return { data, total };
   }
 
   // Create family with members
