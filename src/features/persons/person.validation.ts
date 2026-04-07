@@ -126,11 +126,25 @@ export const latestPersonsQueryValidation = [
   query("offset").optional().isInt({ min: 0 }).withMessage("offset must be a non-negative integer").toInt(),
 ];
 
+export const deletePersonQueryValidation = [
+  query("id", "id is required").exists().isUUID().withMessage("id must be a valid UUID"),
+  query("deleteSpouse")
+    .optional()
+    .isBoolean()
+    .withMessage("deleteSpouse must be a boolean"),
+  query("deleteChildren")
+    .optional()
+    .isBoolean()
+    .withMessage("deleteChildren must be a boolean"),
+];
+
 export const updatePersonValidation = [
   body("name", "name is required").optional(),
   body("gender", "gender is required").optional(),
   genderEnumValidation,
   body("birthDate", "birthDate must be a valid date").optional().isDate(),
-  body("deathDate", "deathDate must be a valid date").optional().isDate(),
+  body("deathDate", "deathDate must be a valid date")
+    .optional({ nullable: true })
+    .isDate(),
   profilePictureUrlValidation,
 ];

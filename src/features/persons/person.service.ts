@@ -1,4 +1,5 @@
 import personRepository, {
+  DeletePersonOptions,
   PersonFilters,
   PaginationQuery,
 } from "./person.repository";
@@ -65,8 +66,8 @@ class PersonService {
     return updatedPerson ? this.mapPersonToResponse(updatedPerson) : null;
   }
 
-  async deletePerson(id: string): Promise<boolean> {
-    return await personRepository.delete(id);
+  async deletePerson(id: string, options?: DeletePersonOptions): Promise<boolean> {
+    return await personRepository.delete(id, options);
   }
 
   async getPersonsByGender(gender: string): Promise<PersonResponse[]> {

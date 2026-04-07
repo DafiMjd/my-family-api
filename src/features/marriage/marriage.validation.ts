@@ -21,10 +21,6 @@ const createMarryParticipantValidation = (participantPath: "person1" | "person2"
     const hasPersonId = typeof value?.personId === "string";
     const hasNewPerson = value?.newPerson !== undefined && value?.newPerson !== null;
 
-    console.log(participantPath)
-    console.log(`hasPersonId: ${hasPersonId}, hasNewPerson: ${hasNewPerson}`);
-    console.log(value);
-
     if ((hasPersonId && hasNewPerson) || (!hasPersonId && !hasNewPerson)) {
       throw new Error(
         `${participantPath} must provide exactly one of personId or newPerson`

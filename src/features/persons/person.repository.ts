@@ -25,6 +25,11 @@ export interface PaginationQuery {
   offset?: number;
 }
 
+export interface DeletePersonOptions {
+  deleteSpouse?: boolean;
+  deleteChildren?: boolean;
+}
+
 class PersonRepository {
   async findAll(filters?: PersonFilters): Promise<PaginatedPersons> {
     const normalizedStatus = filters?.status?.toUpperCase();
@@ -200,14 +205,55 @@ class PersonRepository {
     }
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(id: string, options?: DeletePersonOptions): Promise<boolean> {
     try {
-      await prisma.person.delete({
-        where: { id },
+      await prisma.$transaction(async (tx) => {
+        const person = await tx.person.findUnique({
+          where: { id },
+          select: { id: true },
+        });
+
+        if (!person) {
+          throw new Error("PERSON_NOT_FOUND");
+        }
+
+        const idsToDelete = new Set<string>([id]);
+
+        if (options?.deleteSpouse) {
+          const spouse = await tx.relationship.findFirst({
+            where: {
+              personId: id,
+              type: RelationshipType.SPOUSE,
+              endDate: null,
+            },
+            select: { relatedPersonId: true },
+          });
+
+          if (spouse?.relatedPersonId) {
+            idsToDelete.add(spouse.relatedPersonId);
+          }
+        }
+
+        if (options?.deleteChildren) {
+          const parentIds = Array.from(idsToDelete);
+          const children = await tx.parentChild.findMany({
+            where: { parentId: { in: parentIds } },
+            select: { childId: true },
+          });
+
+          for (const child of children) {
+            idsToDelete.add(child.childId);
+          }
+        }
+
+        await tx.person.deleteMany({
+          where: { id: { in: Array.from(idsToDelete) } },
+        });
       });
+
       return true;
     } catch (error) {
-      // If person doesn't exist, Prisma throws an error
+      // If person doesn't exist, return false
       return false;
     }
   }

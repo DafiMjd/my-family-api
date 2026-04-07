@@ -3,6 +3,7 @@ import { requireAccessJwt } from "@/shared/middleware/require-access-jwt.middlew
 import personController from "./person.controller";
 import {
   createPersonValidation,
+  deletePersonQueryValidation,
   latestPersonsQueryValidation,
   listPersonsQueryValidation,
   updatePersonValidation,
@@ -43,7 +44,7 @@ router.post(
   personController.createPerson.bind(personController)
 );
 
-// PUT /api/person/one - Update person (query param)
+// PUT /api/person/one - Update person (query param). Body deathDate: null clears DB value.
 router.put(
   "/one",
   requireAccessJwt,
@@ -55,6 +56,7 @@ router.put(
 router.delete(
   "/one",
   requireAccessJwt,
+  deletePersonQueryValidation,
   personController.deletePerson.bind(personController)
 );
 

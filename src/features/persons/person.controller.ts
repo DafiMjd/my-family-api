@@ -211,6 +211,16 @@ class PersonController {
 
   async deletePerson(req: Request, res: Response): Promise<void> {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: errors.array(),
+        });
+        return;
+      }
+
       const { id } = req.query;
 
       if (!id || typeof id !== "string") {
@@ -222,7 +232,13 @@ class PersonController {
         return;
       }
 
-      const deleted = await personService.deletePerson(id);
+      const deleteSpouse = req.query.deleteSpouse === "true";
+      const deleteChildren = req.query.deleteChildren === "true";
+
+      const deleted = await personService.deletePerson(id, {
+        deleteSpouse,
+        deleteChildren,
+      });
 
       if (!deleted) {
         res.status(404).json({
