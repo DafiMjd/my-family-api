@@ -1,12 +1,20 @@
 import prisma from "@/shared/database/prisma";
-import { RelationshipType } from "@prisma/client";
+import { ParentType, RelationshipType } from "@prisma/client";
 import {
+  ChildInput,
+  FamilyTreePerson,
   FamilyTreePersonWithRelation,
   FamilyTreePersonWithRelationAndSpouse,
   PersonWithChildrenAndSpouse,
   PersonWithClosestRelatives,
   RootPersonWithSpouse,
 } from "@/shared/types/family-tree.types";
+
+type AddChildrenResult = {
+  created: FamilyTreePerson[];
+  parent: FamilyTreePerson;
+  spouse: FamilyTreePerson | null;
+};
 
 class FamilyTreeRepository {
   // Find all first-generation persons with their active spouse (single query)
@@ -126,6 +134,62 @@ class FamilyTreeRepository {
   async personExists(personId: string): Promise<boolean> {
     const count = await prisma.person.count({ where: { id: personId } });
     return count > 0;
+  }
+
+  // Create new persons as children of the given parent (and their spouse if one exists).
+  // Returns null when the parent does not exist.
+  async addChildren(parentId: string, children: ChildInput[]): Promise<AddChildrenResult | null> {
+    const parent = await prisma.person.findUnique({
+      where: { id: parentId },
+      include: {
+        relationships: {
+          where: { type: RelationshipType.SPOUSE, endDate: null },
+          include: { relatedPerson: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!parent) return null;
+
+    const spouse = (parent.relationships[0]?.relatedPerson ?? null) as FamilyTreePerson | null;
+
+    const created = await prisma.$transaction(
+      children.map((child) =>
+        prisma.person.create({
+          data: {
+            name: child.name,
+            gender: child.gender,
+            birthDate: new Date(child.birthDate),
+            deathDate: child.deathDate ? new Date(child.deathDate) : null,
+            bio: child.bio ?? null,
+            profilePictureUrl: child.profilePictureUrl ?? null,
+            childOf: {
+              create: [
+                {
+                  parentId: parent.id,
+                  parentName: parent.name,
+                  childName: child.name,
+                  type: ParentType.BIOLOGICAL,
+                },
+                ...(spouse
+                  ? [
+                      {
+                        parentId: spouse.id,
+                        parentName: spouse.name,
+                        childName: child.name,
+                        type: ParentType.BIOLOGICAL,
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          },
+        })
+      )
+    );
+
+    return { created: created as FamilyTreePerson[], parent: parent as FamilyTreePerson, spouse };
   }
 
   // Check whether a person has at least one child using a single lightweight query.

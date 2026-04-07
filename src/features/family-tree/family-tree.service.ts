@@ -1,5 +1,7 @@
 import familyTreeRepository from "./family-tree.repository";
 import {
+  AddChildrenResponse,
+  ChildInput,
   FamilyTreeRootEntryResponse,
   FamilyTreeRelativeResponse,
   FamilyTreeRelativeWithSpouseResponse,
@@ -98,6 +100,21 @@ class FamilyTreeService {
 
     const parents = await familyTreeRepository.findParents(personId);
     return parents.map((p) => this.mapToRelativeResponse(p));
+  }
+
+  async addChildren(parentId: string, children: ChildInput[]): Promise<AddChildrenResponse> {
+    const result = await familyTreeRepository.addChildren(parentId, children);
+    if (result === null) {
+      throw new Error(`Person with ID '${parentId}' not found`);
+    }
+
+    const { created, parent, spouse } = result;
+    const connectedParents = spouse ? [parent, spouse] : [parent];
+
+    return {
+      children: created.map((c) => this.mapToPersonResponse(c)),
+      connectedParents: connectedParents.map((p) => this.mapToPersonResponse(p)),
+    };
   }
 
   async hasChildren(personId: string): Promise<boolean> {

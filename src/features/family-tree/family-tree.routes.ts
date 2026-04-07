@@ -1,11 +1,18 @@
 import { Router } from "express";
 import familyTreeController from "./family-tree.controller";
-import { personIdParamValidation, withSpouseQueryValidation } from "./family-tree.validation";
+import { addChildrenValidation, personIdParamValidation, withSpouseQueryValidation } from "./family-tree.validation";
 
 const router = Router();
 
 // GET /api/family-tree/roots - Get first generation (persons with no parents)
 router.get("/roots", familyTreeController.getRoots.bind(familyTreeController));
+
+// POST /api/family-tree/add-children - Add new children to a parent (and their spouse)
+router.post(
+  "/add-children",
+  addChildrenValidation,
+  familyTreeController.addChildren.bind(familyTreeController)
+);
 
 // GET /api/family-tree/:personId/children - Get children of a person
 router.get(

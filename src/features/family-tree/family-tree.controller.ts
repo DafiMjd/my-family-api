@@ -118,6 +118,38 @@ class FamilyTreeController {
     }
   }
 
+  // POST /api/family-tree/add-children
+  async addChildren(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: errors.array(),
+        });
+        return;
+      }
+
+      const { parentId, children } = req.body;
+      const result = await familyTreeService.addChildren(parentId, children);
+
+      res.status(201).json({
+        success: true,
+        data: result,
+        count: result.children.length,
+      });
+    } catch (error) {
+      const isNotFound =
+        error instanceof Error && error.message.includes("not found");
+      res.status(isNotFound ? 404 : 500).json({
+        success: false,
+        error: isNotFound ? "Parent not found" : "Failed to add children",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
   // GET /api/family-tree/has-child/:personId
   async hasChildren(req: Request, res: Response): Promise<void> {
     try {
