@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import marriageService from "./marriage.service";
 import {
   MarriageRequest,
+  MarriageCreateRequest,
   DivorceRequest,
   CancelMarriageRequest,
   CancelDivorceRequest,
@@ -23,18 +24,28 @@ class MarriageController {
       }
 
       const marriageData: MarriageRequest = req.body;
+      const result = await marriageService.marry(marriageData);
+      res.status(201).json(result);
+    } catch (error) {
+      const errorResponse = this.handleMarriageError(error);
+      res.status(errorResponse.statusCode).json(errorResponse.response);
+    }
+  }
 
-      // Additional validation: ensure personId1 and personId2 are different
-      if (marriageData.personId1 === marriageData.personId2) {
+  async marryByPersonInput(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
         res.status(400).json({
           success: false,
           error: "BAD_REQUEST",
-          message: "Cannot marry a person to themselves",
+          message: errors.mapped(),
         });
         return;
       }
 
-      const result = await marriageService.marry(marriageData);
+      const marriageData: MarriageCreateRequest = req.body;
+      const result = await marriageService.marryByPersonInput(marriageData);
       res.status(201).json(result);
     } catch (error) {
       const errorResponse = this.handleMarriageError(error);

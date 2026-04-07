@@ -7,9 +7,30 @@ const client_1 = require("@prisma/client");
 const prisma_1 = __importDefault(require("@/shared/database/prisma"));
 class PersonRepository {
     async findAll(filters) {
+        const normalizedStatus = filters?.status?.toUpperCase();
+        const statusWhere = normalizedStatus === "MARRIED"
+            ? {
+                relationships: {
+                    some: {
+                        type: client_1.RelationshipType.SPOUSE,
+                        endDate: null,
+                    },
+                },
+            }
+            : normalizedStatus === "SINGLE"
+                ? {
+                    relationships: {
+                        none: {
+                            type: client_1.RelationshipType.SPOUSE,
+                            endDate: null,
+                        },
+                    },
+                }
+                : {};
         const where = {
             ...(filters?.name && { name: { contains: filters.name, mode: "insensitive" } }),
             ...(filters?.gender && { gender: filters.gender }),
+            ...statusWhere,
         };
         const [data, total] = await prisma_1.default.$transaction([
             prisma_1.default.person.findMany({

@@ -1,6 +1,9 @@
-import { MarriageRequest, DivorceRequest, CancelMarriageRequest, CancelDivorceRequest, MarriageOperationResponse, MarriageListResponse, SinglePersonsResponse } from "@/shared/types/marriage.types";
+import { MarriageRequest, MarriageCreateRequest, DivorceRequest, CancelMarriageRequest, CancelDivorceRequest, MarriageOperationResponse, MarriageListResponse, SinglePersonsResponse } from "@/shared/types/marriage.types";
 declare class MarriageService {
     marry(marriageData: MarriageRequest): Promise<MarriageOperationResponse>;
+    marryByPersonInput(marriageData: MarriageCreateRequest): Promise<MarriageOperationResponse>;
+    private createMarriageByIds;
+    private resolvePersonId;
     divorce(divorceData: DivorceRequest): Promise<MarriageOperationResponse>;
     cancelMarriage(cancelData: CancelMarriageRequest): Promise<MarriageOperationResponse>;
     cancelDivorce(cancelData: CancelDivorceRequest): Promise<MarriageOperationResponse>;

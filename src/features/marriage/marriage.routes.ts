@@ -3,6 +3,7 @@ import { requireAccessJwt } from '@/shared/middleware/require-access-jwt.middlew
 import marriageController from './marriage.controller';
 import {
   marryValidation,
+  marryCreateValidation,
   divorceValidation,
   cancelMarriageValidation,
   cancelDivorceValidation,
@@ -14,6 +15,14 @@ const router = Router();
 // POST /api/marriage/marry - Create new marriage
 router.post(
   '/marry',
+  requireAccessJwt,
+  marryCreateValidation,
+  marriageController.marryByPersonInput.bind(marriageController)
+);
+
+// POST /api/marriage/marry/by-id - Create new marriage by existing person IDs
+router.post(
+  '/marry/by-id',
   requireAccessJwt,
   marryValidation,
   marriageController.marry.bind(marriageController)

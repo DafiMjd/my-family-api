@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 declare class MarriageController {
     marry(req: Request, res: Response): Promise<void>;
+    marryByPersonInput(req: Request, res: Response): Promise<void>;
     divorce(req: Request, res: Response): Promise<void>;
     cancelMarriage(req: Request, res: Response): Promise<void>;
     cancelDivorce(req: Request, res: Response): Promise<void>;

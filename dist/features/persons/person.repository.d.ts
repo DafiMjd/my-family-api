@@ -2,6 +2,7 @@ import { Person, CreatePersonRequest, UpdatePersonRequest } from "@/shared/types
 export interface PersonFilters {
     name?: string;
     gender?: string;
+    status?: string;
     limit?: number;
     offset?: number;
 }

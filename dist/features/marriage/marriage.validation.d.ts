@@ -1,4 +1,5 @@
 export declare const marryValidation: import("express-validator").ValidationChain[];
+export declare const marryCreateValidation: import("express-validator").ValidationChain[];
 export declare const divorceValidation: import("express-validator").ValidationChain[];
 export declare const cancelMarriageValidation: import("express-validator").ValidationChain[];
 export declare const cancelDivorceValidation: import("express-validator").ValidationChain[];

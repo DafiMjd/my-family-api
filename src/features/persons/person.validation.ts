@@ -116,6 +116,7 @@ export const buildCreateFamilyParentValidation = (
 export const listPersonsQueryValidation = [
   query("name").optional().isString().withMessage("name must be a string"),
   query("gender").optional().isIn(["MAN", "WOMAN"]).withMessage("gender must be MAN or WOMAN"),
+  query("status").optional().isString().withMessage("status must be a string"),
   query("limit").optional().isInt({ min: 1 }).withMessage("limit must be a positive integer").toInt(),
   query("offset").optional().isInt({ min: 0 }).withMessage("offset must be a non-negative integer").toInt(),
 ];

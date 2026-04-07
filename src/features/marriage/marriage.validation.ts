@@ -1,12 +1,90 @@
 import { body, query } from "express-validator";
 
+const startDateValidation = body("startDate")
+  .optional()
+  .isDate()
+  .withMessage("startDate must be a valid ISO 8601 date");
+
 export const marryValidation = [
   body("personId1").isUUID().withMessage("personId1 must be a valid UUID"),
   body("personId2").isUUID().withMessage("personId2 must be a valid UUID"),
-  body("startDate")
+  startDateValidation,
+];
+
+const createMarryParticipantValidation = (participantPath: "person1" | "person2") => [
+  body(participantPath)
+    .exists()
+    .withMessage(`${participantPath} is required`)
+    .isObject()
+    .withMessage(`${participantPath} must be an object`),
+  body(participantPath).custom((value: any) => {
+    const hasPersonId = typeof value?.personId === "string";
+    const hasNewPerson = value?.newPerson !== undefined && value?.newPerson !== null;
+
+    console.log(participantPath)
+    console.log(`hasPersonId: ${hasPersonId}, hasNewPerson: ${hasNewPerson}`);
+    console.log(value);
+
+    if ((hasPersonId && hasNewPerson) || (!hasPersonId && !hasNewPerson)) {
+      throw new Error(
+        `${participantPath} must provide exactly one of personId or newPerson`
+      );
+    }
+    return true;
+  }),
+  body(`${participantPath}.personId`)
     .optional()
+    .isUUID()
+    .withMessage(`${participantPath}.personId must be a valid UUID`),
+  body(`${participantPath}.newPerson`)
+    .optional()
+    .isObject()
+    .withMessage(`${participantPath}.newPerson must be an object`),
+  body(`${participantPath}.newPerson.parentId`)
+    .optional({ nullable: true })
+    .isUUID()
+    .withMessage(`${participantPath}.newPerson.parentId must be a valid UUID`),
+  body(`${participantPath}.newPerson.name`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .exists()
+    .withMessage(`${participantPath}.newPerson.name is required`)
+    .isString()
+    .withMessage(`${participantPath}.newPerson.name must be a string`)
+    .notEmpty()
+    .withMessage(`${participantPath}.newPerson.name must not be empty`),
+  body(`${participantPath}.newPerson.gender`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .exists()
+    .withMessage(`${participantPath}.newPerson.gender is required`)
+    .isIn(["MAN", "WOMAN"])
+    .withMessage(`${participantPath}.newPerson.gender must be MAN or WOMAN`),
+  body(`${participantPath}.newPerson.birthDate`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .exists()
+    .withMessage(`${participantPath}.newPerson.birthDate is required`)
     .isDate()
-    .withMessage("startDate must be a valid ISO 8601 date"),
+    .withMessage(`${participantPath}.newPerson.birthDate must be a valid date`),
+  body(`${participantPath}.newPerson.deathDate`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .optional({ nullable: true })
+    .isDate()
+    .withMessage(`${participantPath}.newPerson.deathDate must be a valid date`),
+  body(`${participantPath}.newPerson.bio`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .optional({ nullable: true })
+    .isString()
+    .withMessage(`${participantPath}.newPerson.bio must be a string`),
+  body(`${participantPath}.newPerson.profilePictureUrl`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .optional({ nullable: true })
+    .isURL()
+    .withMessage(`${participantPath}.newPerson.profilePictureUrl must be a valid URL`),
+];
+
+export const marryCreateValidation = [
+  ...createMarryParticipantValidation("person1"),
+  ...createMarryParticipantValidation("person2"),
+  startDateValidation,
 ];
 
 export const divorceValidation = [

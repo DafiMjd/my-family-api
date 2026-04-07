@@ -18,15 +18,27 @@ class MarriageController {
                 return;
             }
             const marriageData = req.body;
-            if (marriageData.personId1 === marriageData.personId2) {
+            const result = await marriage_service_1.default.marry(marriageData);
+            res.status(201).json(result);
+        }
+        catch (error) {
+            const errorResponse = this.handleMarriageError(error);
+            res.status(errorResponse.statusCode).json(errorResponse.response);
+        }
+    }
+    async marryByPersonInput(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
                 res.status(400).json({
                     success: false,
                     error: "BAD_REQUEST",
-                    message: "Cannot marry a person to themselves",
+                    message: errors.mapped(),
                 });
                 return;
             }
-            const result = await marriage_service_1.default.marry(marriageData);
+            const marriageData = req.body;
+            const result = await marriage_service_1.default.marryByPersonInput(marriageData);
             res.status(201).json(result);
         }
         catch (error) {

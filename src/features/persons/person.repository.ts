@@ -10,6 +10,7 @@ import prisma from "@/shared/database/prisma";
 export interface PersonFilters {
   name?: string;
   gender?: string;
+  status?: string;
   limit?: number;
   offset?: number;
 }
@@ -26,9 +27,33 @@ export interface PaginationQuery {
 
 class PersonRepository {
   async findAll(filters?: PersonFilters): Promise<PaginatedPersons> {
+    const normalizedStatus = filters?.status?.toUpperCase();
+
+    const statusWhere =
+      normalizedStatus === "MARRIED"
+        ? {
+            relationships: {
+              some: {
+                type: RelationshipType.SPOUSE,
+                endDate: null,
+              },
+            },
+          }
+        : normalizedStatus === "SINGLE"
+          ? {
+              relationships: {
+                none: {
+                  type: RelationshipType.SPOUSE,
+                  endDate: null,
+                },
+              },
+            }
+          : {};
+
     const where = {
       ...(filters?.name && { name: { contains: filters.name, mode: "insensitive" as const } }),
       ...(filters?.gender && { gender: filters.gender as Gender }),
+      ...statusWhere,
     };
 
     const [data, total] = await prisma.$transaction([

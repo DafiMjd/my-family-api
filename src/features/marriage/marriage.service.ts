@@ -1,7 +1,10 @@
 import marriageRepository from "./marriage.repository";
 import personRepository from "../persons/person.repository";
+import personService from "../persons/person.service";
 import {
   MarriageRequest,
+  MarriageCreateRequest,
+  MarryPersonInput,
   DivorceRequest,
   CancelMarriageRequest,
   CancelDivorceRequest,
@@ -18,7 +21,30 @@ class MarriageService {
   async marry(
     marriageData: MarriageRequest
   ): Promise<MarriageOperationResponse> {
+    return this.createMarriageByIds(marriageData);
+  }
+
+  async marryByPersonInput(
+    marriageData: MarriageCreateRequest
+  ): Promise<MarriageOperationResponse> {
+    const personId1 = await this.resolvePersonId(marriageData.person1);
+    const personId2 = await this.resolvePersonId(marriageData.person2);
+
+    return this.createMarriageByIds({
+      personId1,
+      personId2,
+      startDate: marriageData.startDate,
+    });
+  }
+
+  private async createMarriageByIds(
+    marriageData: MarriageRequest
+  ): Promise<MarriageOperationResponse> {
     const { personId1, personId2, startDate } = marriageData;
+
+    if (personId1 === personId2) {
+      throw new Error("Cannot marry a person to themselves");
+    }
 
     // Validate that both persons exist
     const persons = await personRepository.findPersonsByIds(
@@ -70,6 +96,22 @@ class MarriageService {
       data: relationships.map(this.mapRelationshipToResponse),
       message: "Marriage created successfully",
     };
+  }
+
+  private async resolvePersonId(personInput: MarryPersonInput): Promise<string> {
+    if (personInput.personId && personInput.newPerson) {
+      throw new Error("Provide only one of personId or newPerson");
+    }
+    if (!personInput.personId && !personInput.newPerson) {
+      throw new Error("Either personId or newPerson is required");
+    }
+
+    if (personInput.personId) {
+      return personInput.personId;
+    }
+
+    const createdPerson = await personService.createPerson(personInput.newPerson!);
+    return createdPerson.id;
   }
 
   async divorce(

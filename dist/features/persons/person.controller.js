@@ -19,9 +19,16 @@ class PersonController {
             }
             const name = typeof req.query.name === "string" ? req.query.name : undefined;
             const gender = typeof req.query.gender === "string" ? req.query.gender : undefined;
+            const status = typeof req.query.status === "string" ? req.query.status : undefined;
             const limit = req.query.limit !== undefined ? Number(req.query.limit) : 10;
             const offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
-            const { data, total } = await person_service_1.default.getAllPersons({ name, gender, limit, offset });
+            const { data, total } = await person_service_1.default.getAllPersons({
+                name,
+                gender,
+                status,
+                limit,
+                offset,
+            });
             res.status(200).json({
                 success: true,
                 data,

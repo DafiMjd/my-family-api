@@ -5,9 +5,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const marriage_repository_1 = __importDefault(require("./marriage.repository"));
 const person_repository_1 = __importDefault(require("../persons/person.repository"));
+const person_service_1 = __importDefault(require("../persons/person.service"));
 class MarriageService {
     async marry(marriageData) {
+        return this.createMarriageByIds(marriageData);
+    }
+    async marryByPersonInput(marriageData) {
+        const personId1 = await this.resolvePersonId(marriageData.person1);
+        const personId2 = await this.resolvePersonId(marriageData.person2);
+        return this.createMarriageByIds({
+            personId1,
+            personId2,
+            startDate: marriageData.startDate,
+        });
+    }
+    async createMarriageByIds(marriageData) {
         const { personId1, personId2, startDate } = marriageData;
+        if (personId1 === personId2) {
+            throw new Error("Cannot marry a person to themselves");
+        }
         const persons = await person_repository_1.default.findPersonsByIds([personId1, personId2]);
         if (persons.length !== 2) {
             throw new Error("One or both persons not found");
@@ -35,6 +51,19 @@ class MarriageService {
             data: relationships.map(this.mapRelationshipToResponse),
             message: "Marriage created successfully",
         };
+    }
+    async resolvePersonId(personInput) {
+        if (personInput.personId && personInput.newPerson) {
+            throw new Error("Provide only one of personId or newPerson");
+        }
+        if (!personInput.personId && !personInput.newPerson) {
+            throw new Error("Either personId or newPerson is required");
+        }
+        if (personInput.personId) {
+            return personInput.personId;
+        }
+        const createdPerson = await person_service_1.default.createPerson(personInput.newPerson);
+        return createdPerson.id;
     }
     async divorce(divorceData) {
         const { personId, endDate } = divorceData;

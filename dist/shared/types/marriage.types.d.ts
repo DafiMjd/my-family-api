@@ -1,9 +1,19 @@
 import { RelationshipType } from "@prisma/client";
 import { PersonResponse } from "./person.types";
+import { CreatePersonApiRequest } from "./person.types";
 export { RelationshipType };
 export interface MarriageRequest {
     personId1: string;
     personId2: string;
+    startDate?: Date | string;
+}
+export interface MarryPersonInput {
+    personId?: string;
+    newPerson?: CreatePersonApiRequest;
+}
+export interface MarriageCreateRequest {
+    person1: MarryPersonInput;
+    person2: MarryPersonInput;
     startDate?: Date | string;
 }
 export interface DivorceRequest {
