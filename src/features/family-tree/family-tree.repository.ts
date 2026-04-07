@@ -127,6 +127,26 @@ class FamilyTreeRepository {
     const count = await prisma.person.count({ where: { id: personId } });
     return count > 0;
   }
+
+  // Check whether a person has at least one child using a single lightweight query.
+  // Returns null when the person does not exist.
+  async hasChildren(personId: string): Promise<boolean | null> {
+    const person = await prisma.person.findUnique({
+      where: { id: personId },
+      select: {
+        parentsOf: {
+          select: { childId: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!person) {
+      return null;
+    }
+
+    return person.parentsOf.length > 0;
+  }
 }
 
 export default new FamilyTreeRepository();

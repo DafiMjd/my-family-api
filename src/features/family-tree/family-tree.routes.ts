@@ -29,4 +29,11 @@ router.get(
   familyTreeController.getParents.bind(familyTreeController)
 );
 
+// GET /api/family-tree/has-child/:personId - Check whether person has at least one child
+router.get(
+  "/has-child/:personId",
+  personIdParamValidation,
+  familyTreeController.hasChildren.bind(familyTreeController)
+);
+
 export default router;

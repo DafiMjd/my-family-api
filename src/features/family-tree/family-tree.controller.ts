@@ -117,6 +117,39 @@ class FamilyTreeController {
       });
     }
   }
+
+  // GET /api/family-tree/has-child/:personId
+  async hasChildren(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: errors.array(),
+        });
+        return;
+      }
+
+      const { personId } = req.params;
+      const hasChildren = await familyTreeService.hasChildren(personId);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          hasChildren,
+        },
+      });
+    } catch (error) {
+      const isNotFound =
+        error instanceof Error && error.message.includes("not found");
+      res.status(isNotFound ? 404 : 500).json({
+        success: false,
+        error: isNotFound ? "Person not found" : "Failed to check children",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
 }
 
 export default new FamilyTreeController();

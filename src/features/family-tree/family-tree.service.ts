@@ -100,6 +100,15 @@ class FamilyTreeService {
     return parents.map((p) => this.mapToRelativeResponse(p));
   }
 
+  async hasChildren(personId: string): Promise<boolean> {
+    const hasChildren = await familyTreeRepository.hasChildren(personId);
+    if (hasChildren === null) {
+      throw new Error(`Person with ID '${personId}' not found`);
+    }
+
+    return hasChildren;
+  }
+
   private mapToPersonResponse(person: FamilyTreePerson): FamilyTreePersonResponse {
     return {
       id: person.id,
