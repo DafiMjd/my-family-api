@@ -9,6 +9,26 @@ export const personIdParamValidation = [
 ];
 
 export const withSpouseQueryValidation = [
+  query("fatherId")
+    .optional({ values: "falsy" })
+    .isUUID()
+    .withMessage("fatherId must be a valid UUID"),
+  query("motherId")
+    .optional({ values: "falsy" })
+    .isUUID()
+    .withMessage("motherId must be a valid UUID"),
+  query().custom((_, { req }) => {
+    const f = req.query?.fatherId;
+    const m = req.query?.motherId;
+    const fStr = typeof f === "string" ? f.trim() : "";
+    const mStr = typeof m === "string" ? m.trim() : "";
+    const hasF = fStr.length > 0;
+    const hasM = mStr.length > 0;
+    if (!hasF && !hasM) {
+      throw new Error("At least one of fatherId or motherId is required");
+    }
+    return true;
+  }),
   query("withSpouse")
     .optional()
     .isBoolean()
@@ -16,11 +36,21 @@ export const withSpouseQueryValidation = [
 ];
 
 export const addChildrenValidation = [
-  body("parentId")
+  body("parent")
     .exists()
-    .withMessage("parentId is required")
+    .withMessage("parent is required")
+    .isObject()
+    .withMessage("parent must be an object"),
+  body("parent.fatherId")
+    .exists()
+    .withMessage("parent.fatherId is required")
     .isUUID()
-    .withMessage("parentId must be a valid UUID"),
+    .withMessage("parent.fatherId must be a valid UUID"),
+  body("parent.motherId")
+    .exists()
+    .withMessage("parent.motherId is required")
+    .isUUID()
+    .withMessage("parent.motherId must be a valid UUID"),
   body("children")
     .exists()
     .withMessage("children is required")

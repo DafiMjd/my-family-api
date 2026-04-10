@@ -2,12 +2,13 @@ import { Relationship, RelationshipType } from '@prisma/client';
 import prisma from '@/shared/database/prisma';
 
 class MarriageRepository {
-  async   createMarriage(
+  async createMarriage(
     personId1: string,
     personName1: string,
     personId2: string,
     personName2: string,
-    startDate: Date
+    startDate: Date,
+    endDate: Date | null
   ): Promise<Relationship[]> {
     // Create bidirectional marriage relationships
     const relationships = await prisma.$transaction([
@@ -19,7 +20,7 @@ class MarriageRepository {
           relatedPersonName: personName2,
           type: RelationshipType.SPOUSE,
           startDate,
-          endDate: null,
+          endDate,
         },
       }),
       prisma.relationship.create({
@@ -30,7 +31,7 @@ class MarriageRepository {
           relatedPersonName: personName1,
           type: RelationshipType.SPOUSE,
           startDate,
-          endDate: null,
+          endDate,
         },
       }),
     ]);
@@ -51,22 +52,28 @@ class MarriageRepository {
     });
   }
 
-  async divorceMarriage(personId: string, endDate: Date): Promise<Relationship[]> {
-    // Find the active marriage
-    const activeMarriage = await this.findActiveMarriage(personId);
-    
+  async divorceMarriage(fatherId: string, motherId: string, endDate: Date): Promise<Relationship[]> {
+    const activeMarriage = await prisma.relationship.findFirst({
+      where: {
+        type: RelationshipType.SPOUSE,
+        endDate: null,
+        OR: [
+          { personId: fatherId, relatedPersonId: motherId },
+          { personId: motherId, relatedPersonId: fatherId },
+        ],
+      },
+    });
+
     if (!activeMarriage) {
-      throw new Error('Person is not currently married');
+      throw new Error('Persons are not currently married');
     }
 
-    const spouseId = activeMarriage.relatedPersonId;
-
     // Update both relationship rows
-    const relationships = await prisma.$transaction([
+    await prisma.$transaction([
       prisma.relationship.updateMany({
         where: {
-          personId,
-          relatedPersonId: spouseId,
+          personId: fatherId,
+          relatedPersonId: motherId,
           type: RelationshipType.SPOUSE,
           endDate: null,
         },
@@ -74,8 +81,8 @@ class MarriageRepository {
       }),
       prisma.relationship.updateMany({
         where: {
-          personId: spouseId,
-          relatedPersonId: personId,
+          personId: motherId,
+          relatedPersonId: fatherId,
           type: RelationshipType.SPOUSE,
           endDate: null,
         },
@@ -87,41 +94,41 @@ class MarriageRepository {
     return await prisma.relationship.findMany({
       where: {
         OR: [
-          { personId, relatedPersonId: spouseId, type: RelationshipType.SPOUSE },
-          { personId: spouseId, relatedPersonId: personId, type: RelationshipType.SPOUSE },
+          { personId: fatherId, relatedPersonId: motherId, type: RelationshipType.SPOUSE },
+          { personId: motherId, relatedPersonId: fatherId, type: RelationshipType.SPOUSE },
         ],
       },
     });
   }
 
-  async cancelMarriage(personId: string): Promise<Relationship[]> {
-    // Find any marriage (active or inactive)
+  async cancelMarriage(fatherId: string, motherId: string): Promise<Relationship[]> {
     const marriage = await prisma.relationship.findFirst({
       where: {
-        personId,
         type: RelationshipType.SPOUSE,
+        OR: [
+          { personId: fatherId, relatedPersonId: motherId },
+          { personId: motherId, relatedPersonId: fatherId },
+        ],
       },
     });
 
     if (!marriage) {
-      throw new Error('Person has no marriage to cancel');
+      throw new Error("Persons have no marriage to cancel");
     }
-
-    const spouseId = marriage.relatedPersonId;
 
     // Delete both relationship rows
     await prisma.$transaction([
       prisma.relationship.deleteMany({
         where: {
-          personId,
-          relatedPersonId: spouseId,
+          personId: fatherId,
+          relatedPersonId: motherId,
           type: RelationshipType.SPOUSE,
         },
       }),
       prisma.relationship.deleteMany({
         where: {
-          personId: spouseId,
-          relatedPersonId: personId,
+          personId: motherId,
+          relatedPersonId: fatherId,
           type: RelationshipType.SPOUSE,
         },
       }),
@@ -140,31 +147,28 @@ class MarriageRepository {
     });
   }
 
-  async cancelDivorce(personId: string): Promise<Relationship[]> {
-    // Find the divorced marriage (has end_date IS NOT NULL)
+  async cancelDivorce(fatherId: string, motherId: string): Promise<Relationship[]> {
     const divorcedMarriage = await prisma.relationship.findFirst({
       where: {
-        personId,
         type: RelationshipType.SPOUSE,
         endDate: { not: null },
-      },
-      include: {
-        relatedPerson: true,
+        OR: [
+          { personId: fatherId, relatedPersonId: motherId },
+          { personId: motherId, relatedPersonId: fatherId },
+        ],
       },
     });
 
     if (!divorcedMarriage) {
-      throw new Error('Person is not currently divorced');
+      throw new Error("Persons are not currently divorced");
     }
-
-    const spouseId = divorcedMarriage.relatedPersonId;
 
     // Update both relationship rows to set end_date = null
     await prisma.$transaction([
       prisma.relationship.updateMany({
         where: {
-          personId,
-          relatedPersonId: spouseId,
+          personId: fatherId,
+          relatedPersonId: motherId,
           type: RelationshipType.SPOUSE,
           endDate: { not: null },
         },
@@ -172,8 +176,8 @@ class MarriageRepository {
       }),
       prisma.relationship.updateMany({
         where: {
-          personId: spouseId,
-          relatedPersonId: personId,
+          personId: motherId,
+          relatedPersonId: fatherId,
           type: RelationshipType.SPOUSE,
           endDate: { not: null },
         },
@@ -185,8 +189,8 @@ class MarriageRepository {
     return await prisma.relationship.findMany({
       where: {
         OR: [
-          { personId, relatedPersonId: spouseId, type: RelationshipType.SPOUSE },
-          { personId: spouseId, relatedPersonId: personId, type: RelationshipType.SPOUSE },
+          { personId: fatherId, relatedPersonId: motherId, type: RelationshipType.SPOUSE },
+          { personId: motherId, relatedPersonId: fatherId, type: RelationshipType.SPOUSE },
         ],
       },
     });

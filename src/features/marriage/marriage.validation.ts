@@ -5,10 +5,16 @@ const startDateValidation = body("startDate")
   .isDate()
   .withMessage("startDate must be a valid ISO 8601 date");
 
+const endDateValidation = body("endDate")
+  .optional({ nullable: true })
+  .isDate()
+  .withMessage("endDate must be a valid ISO 8601 date");
+
 export const marryValidation = [
   body("personId1").isUUID().withMessage("personId1 must be a valid UUID"),
   body("personId2").isUUID().withMessage("personId2 must be a valid UUID"),
   startDateValidation,
+  endDateValidation,
 ];
 
 const createMarryParticipantValidation = (participantPath: "person1" | "person2") => [
@@ -36,10 +42,18 @@ const createMarryParticipantValidation = (participantPath: "person1" | "person2"
     .optional()
     .isObject()
     .withMessage(`${participantPath}.newPerson must be an object`),
-  body(`${participantPath}.newPerson.parentId`)
+  body(`${participantPath}.newPerson.parent`)
     .optional({ nullable: true })
+    .isObject()
+    .withMessage(`${participantPath}.newPerson.parent must be an object`),
+  body(`${participantPath}.newPerson.parent.fatherId`)
+    .optional()
     .isUUID()
-    .withMessage(`${participantPath}.newPerson.parentId must be a valid UUID`),
+    .withMessage(`${participantPath}.newPerson.parent.fatherId must be a valid UUID`),
+  body(`${participantPath}.newPerson.parent.motherId`)
+    .optional()
+    .isUUID()
+    .withMessage(`${participantPath}.newPerson.parent.motherId must be a valid UUID`),
   body(`${participantPath}.newPerson.name`)
     .if(body(`${participantPath}.newPerson`).exists())
     .exists()
@@ -81,22 +95,26 @@ export const marryCreateValidation = [
   ...createMarryParticipantValidation("person1"),
   ...createMarryParticipantValidation("person2"),
   startDateValidation,
+  endDateValidation,
 ];
 
 export const divorceValidation = [
-  body("personId").isUUID().withMessage("personId must be a valid UUID"),
+  body("fatherId").isUUID().withMessage("fatherId must be a valid UUID"),
+  body("motherId").isUUID().withMessage("motherId must be a valid UUID"),
   body("endDate")
-    .optional()
+    .optional({ nullable: true })
     .isDate()
     .withMessage("endDate must be a valid ISO 8601 date"),
 ];
 
 export const cancelMarriageValidation = [
-  body("personId").isUUID().withMessage("personId must be a valid UUID"),
+  body("fatherId").isUUID().withMessage("fatherId must be a valid UUID"),
+  body("motherId").isUUID().withMessage("motherId must be a valid UUID"),
 ];
 
 export const cancelDivorceValidation = [
-  body("personId").isUUID().withMessage("personId must be a valid UUID"),
+  body("fatherId").isUUID().withMessage("fatherId must be a valid UUID"),
+  body("motherId").isUUID().withMessage("motherId must be a valid UUID"),
 ];
 
 export const personListValidation = [

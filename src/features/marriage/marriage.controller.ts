@@ -65,10 +65,9 @@ class MarriageController {
         return;
       }
 
-      const { personId } = req.body;
-      const { endDate } = req.body;
+      const { fatherId, motherId, endDate } = req.body;
 
-      const divorceData: DivorceRequest = { personId, endDate };
+      const divorceData: DivorceRequest = { fatherId, motherId, endDate };
       const result = await marriageService.divorce(divorceData);
       res.status(200).json(result);
     } catch (error) {
@@ -89,9 +88,9 @@ class MarriageController {
         return;
       }
 
-      const { personId } = req.body;
+      const { fatherId, motherId } = req.body;
 
-      const cancelData: CancelMarriageRequest = { personId };
+      const cancelData: CancelMarriageRequest = { fatherId, motherId };
       const result = await marriageService.cancelMarriage(cancelData);
       res.status(200).json(result);
     } catch (error) {
@@ -112,9 +111,9 @@ class MarriageController {
         return;
       }
 
-      const { personId } = req.body;
+      const { fatherId, motherId } = req.body;
 
-      const cancelData: CancelDivorceRequest = { personId };
+      const cancelData: CancelDivorceRequest = { fatherId, motherId };
       const result = await marriageService.cancelDivorce(cancelData);
       res.status(200).json(result);
     } catch (error) {
@@ -198,7 +197,10 @@ class MarriageController {
       if (
         message.includes("Cannot marry") ||
         message.includes("personId") ||
-        message.includes("required")
+        message.includes("fatherId") ||
+        message.includes("motherId") ||
+        message.includes("required") ||
+        message.includes("endDate")
       ) {
         return {
           statusCode: 400,

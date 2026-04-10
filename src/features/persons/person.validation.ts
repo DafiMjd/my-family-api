@@ -25,9 +25,18 @@ export const createPersonValidation = [
     .optional({ nullable: true })
     .isDate(),
   profilePictureUrlValidation,
-  body("parentId", "parentId must be a valid UUID")
+  body("parent")
     .optional({ nullable: true })
-    .isUUID(),
+    .isObject()
+    .withMessage("parent must be an object"),
+  body("parent.fatherId")
+    .optional()
+    .isUUID()
+    .withMessage("parent.fatherId must be a valid UUID"),
+  body("parent.motherId")
+    .optional()
+    .isUUID()
+    .withMessage("parent.motherId must be a valid UUID"),
 ];
 
 // Reusable builder for nested person objects (e.g. family.father, family.children[*])
@@ -103,13 +112,22 @@ export const buildCreatePersonValidationIfParentExists = (
   ];
 };
 
-/** Father/mother on create-family: person fields + optional parentId (grandparent link). */
+/** Father/mother on create-family: person fields + optional parent pair (grandparent link). */
 export const buildCreateFamilyParentValidation = (
   prefix: string
 ): ValidationChain[] => [
-    body(`${prefix}parentId`, "parentId must be a valid UUID")
+    body(`${prefix}parent`)
       .optional({ nullable: true })
-      .isUUID(),
+      .isObject()
+      .withMessage("parent must be an object"),
+    body(`${prefix}parent.fatherId`)
+      .optional()
+      .isUUID()
+      .withMessage("parent.fatherId must be a valid UUID"),
+    body(`${prefix}parent.motherId`)
+      .optional()
+      .isUUID()
+      .withMessage("parent.motherId must be a valid UUID"),
     ...buildCreatePersonValidation(prefix),
   ];
 

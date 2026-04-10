@@ -6,10 +6,15 @@ const startDateValidation = (0, express_validator_1.body)("startDate")
     .optional()
     .isDate()
     .withMessage("startDate must be a valid ISO 8601 date");
+const endDateValidation = (0, express_validator_1.body)("endDate")
+    .optional({ nullable: true })
+    .isDate()
+    .withMessage("endDate must be a valid ISO 8601 date");
 exports.marryValidation = [
     (0, express_validator_1.body)("personId1").isUUID().withMessage("personId1 must be a valid UUID"),
     (0, express_validator_1.body)("personId2").isUUID().withMessage("personId2 must be a valid UUID"),
     startDateValidation,
+    endDateValidation,
 ];
 const createMarryParticipantValidation = (participantPath) => [
     (0, express_validator_1.body)(participantPath)
@@ -77,19 +82,23 @@ exports.marryCreateValidation = [
     ...createMarryParticipantValidation("person1"),
     ...createMarryParticipantValidation("person2"),
     startDateValidation,
+    endDateValidation,
 ];
 exports.divorceValidation = [
-    (0, express_validator_1.body)("personId").isUUID().withMessage("personId must be a valid UUID"),
+    (0, express_validator_1.body)("fatherId").isUUID().withMessage("fatherId must be a valid UUID"),
+    (0, express_validator_1.body)("motherId").isUUID().withMessage("motherId must be a valid UUID"),
     (0, express_validator_1.body)("endDate")
-        .optional()
+        .optional({ nullable: true })
         .isDate()
         .withMessage("endDate must be a valid ISO 8601 date"),
 ];
 exports.cancelMarriageValidation = [
-    (0, express_validator_1.body)("personId").isUUID().withMessage("personId must be a valid UUID"),
+    (0, express_validator_1.body)("fatherId").isUUID().withMessage("fatherId must be a valid UUID"),
+    (0, express_validator_1.body)("motherId").isUUID().withMessage("motherId must be a valid UUID"),
 ];
 exports.cancelDivorceValidation = [
-    (0, express_validator_1.body)("personId").isUUID().withMessage("personId must be a valid UUID"),
+    (0, express_validator_1.body)("fatherId").isUUID().withMessage("fatherId must be a valid UUID"),
+    (0, express_validator_1.body)("motherId").isUUID().withMessage("motherId must be a valid UUID"),
 ];
 exports.personListValidation = [
     (0, express_validator_1.query)("status")

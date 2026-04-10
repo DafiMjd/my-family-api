@@ -6,6 +6,7 @@ export interface MarriageRequest {
     personId1: string;
     personId2: string;
     startDate?: Date | string;
+    endDate?: Date | string | null;
 }
 export interface MarryPersonInput {
     personId?: string;
@@ -15,16 +16,20 @@ export interface MarriageCreateRequest {
     person1: MarryPersonInput;
     person2: MarryPersonInput;
     startDate?: Date | string;
+    endDate?: Date | string | null;
 }
 export interface DivorceRequest {
-    personId: string;
+    fatherId: string;
+    motherId: string;
     endDate?: Date | string;
 }
 export interface CancelMarriageRequest {
-    personId: string;
+    fatherId: string;
+    motherId: string;
 }
 export interface CancelDivorceRequest {
-    personId: string;
+    fatherId: string;
+    motherId: string;
 }
 export interface MarriageResponse {
     id: string;

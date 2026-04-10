@@ -17,10 +17,11 @@ class MarriageService {
             personId1,
             personId2,
             startDate: marriageData.startDate,
+            endDate: marriageData.endDate,
         });
     }
     async createMarriageByIds(marriageData) {
-        const { personId1, personId2, startDate } = marriageData;
+        const { personId1, personId2, startDate, endDate } = marriageData;
         if (personId1 === personId2) {
             throw new Error("Cannot marry a person to themselves");
         }
@@ -36,16 +37,12 @@ class MarriageService {
         if (person1.gender === person2.gender) {
             throw new Error("Persons must have different genders");
         }
-        const person1Marriage = await marriage_repository_1.default.findActiveMarriage(personId1);
-        const person2Marriage = await marriage_repository_1.default.findActiveMarriage(personId2);
-        if (person1Marriage) {
-            throw new Error(`person ${person1.name} is already married`);
-        }
-        if (person2Marriage) {
-            throw new Error(`person ${person2.name} is already married`);
-        }
         const marriageDate = startDate ? new Date(startDate) : new Date();
-        const relationships = await marriage_repository_1.default.createMarriage(personId1, person1.name, personId2, person2.name, marriageDate);
+        const marriageEndDate = endDate ? new Date(endDate) : null;
+        if (marriageEndDate && marriageEndDate < marriageDate) {
+            throw new Error("endDate cannot be earlier than startDate");
+        }
+        const relationships = await marriage_repository_1.default.createMarriage(personId1, person1.name, personId2, person2.name, marriageDate, marriageEndDate);
         return {
             success: true,
             data: relationships.map(this.mapRelationshipToResponse),
@@ -66,13 +63,14 @@ class MarriageService {
         return createdPerson.id;
     }
     async divorce(divorceData) {
-        const { personId, endDate } = divorceData;
-        const person = await person_repository_1.default.findById(personId);
-        if (!person) {
-            throw new Error("Person not found");
-        }
+        const { fatherId, motherId, endDate } = divorceData;
+        const { father, mother } = await this.validateMarriagePair(fatherId, motherId);
         const divorceDate = endDate ? new Date(endDate) : new Date();
-        const relationships = await marriage_repository_1.default.divorceMarriage(personId, divorceDate);
+        const now = new Date();
+        if (divorceDate > now) {
+            throw new Error("endDate cannot be in the future");
+        }
+        const relationships = await marriage_repository_1.default.divorceMarriage(father.id, mother.id, divorceDate);
         return {
             success: true,
             data: relationships.map(this.mapRelationshipToResponse),
@@ -80,12 +78,9 @@ class MarriageService {
         };
     }
     async cancelMarriage(cancelData) {
-        const { personId } = cancelData;
-        const person = await person_repository_1.default.findById(personId);
-        if (!person) {
-            throw new Error("Person not found");
-        }
-        await marriage_repository_1.default.cancelMarriage(personId);
+        const { fatherId, motherId } = cancelData;
+        const { father, mother } = await this.validateMarriagePair(fatherId, motherId);
+        await marriage_repository_1.default.cancelMarriage(father.id, mother.id);
         return {
             success: true,
             data: [],
@@ -93,12 +88,9 @@ class MarriageService {
         };
     }
     async cancelDivorce(cancelData) {
-        const { personId } = cancelData;
-        const person = await person_repository_1.default.findById(personId);
-        if (!person) {
-            throw new Error("Person not found");
-        }
-        const relationships = await marriage_repository_1.default.cancelDivorce(personId);
+        const { fatherId, motherId } = cancelData;
+        const { father, mother } = await this.validateMarriagePair(fatherId, motherId);
+        const relationships = await marriage_repository_1.default.cancelDivorce(father.id, mother.id);
         return {
             success: true,
             data: relationships.map(this.mapRelationshipToResponse),
@@ -120,20 +112,19 @@ class MarriageService {
     async getMarriedPersons(gender) {
         const relationships = await marriage_repository_1.default.getMarriedPersons(gender);
         const couples = [];
-        const processedIds = new Set();
+        const processedPairs = new Set();
         for (const rel of relationships) {
-            if (!processedIds.has(rel.personId) &&
-                !processedIds.has(rel.relatedPersonId)) {
-                const husband = rel.person.gender === "MAN" ? rel.person : rel.relatedPerson;
-                const wife = rel.person.gender === "WOMAN" ? rel.person : rel.relatedPerson;
-                couples.push({
-                    husband: this.mapPersonToResponse(husband),
-                    wife: this.mapPersonToResponse(wife),
-                    startDate: rel.startDate ? rel.startDate.toISOString() : null,
-                });
-                processedIds.add(rel.personId);
-                processedIds.add(rel.relatedPersonId);
-            }
+            const pairKey = [rel.personId, rel.relatedPersonId].sort().join(":");
+            if (processedPairs.has(pairKey))
+                continue;
+            const husband = rel.person.gender === "MAN" ? rel.person : rel.relatedPerson;
+            const wife = rel.person.gender === "WOMAN" ? rel.person : rel.relatedPerson;
+            couples.push({
+                husband: this.mapPersonToResponse(husband),
+                wife: this.mapPersonToResponse(wife),
+                startDate: rel.startDate ? rel.startDate.toISOString() : null,
+            });
+            processedPairs.add(pairKey);
         }
         const genderText = gender ? ` (${gender})` : "";
         return {
@@ -145,21 +136,20 @@ class MarriageService {
     async getDivorcedPersons(gender) {
         const relationships = await marriage_repository_1.default.getDivorcedPersons(gender);
         const couples = [];
-        const processedIds = new Set();
+        const processedPairs = new Set();
         for (const rel of relationships) {
-            if (!processedIds.has(rel.personId) &&
-                !processedIds.has(rel.relatedPersonId)) {
-                const husband = rel.person.gender === "MAN" ? rel.person : rel.relatedPerson;
-                const wife = rel.person.gender === "WOMAN" ? rel.person : rel.relatedPerson;
-                couples.push({
-                    husband: this.mapPersonToResponse(husband),
-                    wife: this.mapPersonToResponse(wife),
-                    startDate: rel.startDate ? rel.startDate.toISOString() : null,
-                    endDate: rel.endDate ? rel.endDate.toISOString() : null,
-                });
-                processedIds.add(rel.personId);
-                processedIds.add(rel.relatedPersonId);
-            }
+            const pairKey = [rel.personId, rel.relatedPersonId].sort().join(":");
+            if (processedPairs.has(pairKey))
+                continue;
+            const husband = rel.person.gender === "MAN" ? rel.person : rel.relatedPerson;
+            const wife = rel.person.gender === "WOMAN" ? rel.person : rel.relatedPerson;
+            couples.push({
+                husband: this.mapPersonToResponse(husband),
+                wife: this.mapPersonToResponse(wife),
+                startDate: rel.startDate ? rel.startDate.toISOString() : null,
+                endDate: rel.endDate ? rel.endDate.toISOString() : null,
+            });
+            processedPairs.add(pairKey);
         }
         const genderText = gender ? ` (${gender})` : "";
         return {
@@ -203,6 +193,25 @@ class MarriageService {
             createdAt: person.createdAt.toISOString(),
             updatedAt: person.updatedAt.toISOString(),
         };
+    }
+    async validateMarriagePair(fatherId, motherId) {
+        if (fatherId === motherId) {
+            throw new Error("fatherId and motherId must be different");
+        }
+        const [father, mother] = await Promise.all([
+            person_repository_1.default.findById(fatherId),
+            person_repository_1.default.findById(motherId),
+        ]);
+        if (!father || !mother) {
+            throw new Error("One or both persons not found");
+        }
+        if (father.gender !== "MAN") {
+            throw new Error("fatherId must reference a MAN");
+        }
+        if (mother.gender !== "WOMAN") {
+            throw new Error("motherId must reference a WOMAN");
+        }
+        return { father, mother };
     }
 }
 exports.default = new MarriageService();

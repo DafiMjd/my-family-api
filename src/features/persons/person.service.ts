@@ -35,23 +35,43 @@ class PersonService {
   }
 
   async createPerson(personData: CreatePersonApiRequest): Promise<PersonResponse> {
-    const { parentId, ...personFields } = personData;
-
-    let parent: Person | null = null;
-    if (parentId) {
-      parent = await personRepository.findById(parentId);
-      if (!parent) {
-        throw new Error(`Parent person with ID ${parentId} not found`);
-      }
-    }
+    const { parent, ...personFields } = personData;
 
     const person = await personRepository.create(personFields);
 
     if (parent) {
-      await personRepository.linkBiologicalParentsForDesignatedParent(
+      if (!parent.fatherId || !parent.motherId) {
+        throw new Error("parent.fatherId and parent.motherId are required when parent is provided");
+      }
+      const [father, mother] = await Promise.all([
+        personRepository.findById(parent.fatherId),
+        personRepository.findById(parent.motherId),
+      ]);
+
+      if (!father || !mother) {
+        throw new Error("Parent pair not found");
+      }
+
+      if (father.gender !== Gender.MAN) {
+        throw new Error("parent.fatherId must reference a MAN");
+      }
+
+      if (mother.gender !== Gender.WOMAN) {
+        throw new Error("parent.motherId must reference a WOMAN");
+      }
+
+      await personRepository.upsertBiologicalParentChild(
+        father.id,
+        father.name,
         person.id,
-        person.name,
-        { id: parent.id, name: parent.name }
+        person.name
+      );
+
+      await personRepository.upsertBiologicalParentChild(
+        mother.id,
+        mother.name,
+        person.id,
+        person.name
       );
     }
 

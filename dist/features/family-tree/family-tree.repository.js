@@ -19,7 +19,6 @@ class FamilyTreeRepository {
                             include: { _count: { select: { childOf: true } } },
                         },
                     },
-                    take: 1,
                 },
             },
             orderBy: { birthDate: "asc" },
@@ -37,7 +36,6 @@ class FamilyTreeRepository {
                                 relationships: {
                                     where: { type: client_1.RelationshipType.SPOUSE, endDate: null },
                                     include: { relatedPerson: true },
-                                    take: 1,
                                 },
                             },
                         },
@@ -52,7 +50,11 @@ class FamilyTreeRepository {
         return raw.parentsOf.map((row) => ({
             ...row.child,
             relationshipType: row.type,
-            spouse: row.child.relationships[0]?.relatedPerson ?? null,
+            spouses: row.child.relationships.map((relationship) => ({
+                person: relationship.relatedPerson,
+                startDate: relationship.startDate,
+                endDate: relationship.endDate,
+            })),
         }));
     }
     async findChildren(personId) {

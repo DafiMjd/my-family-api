@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import familyTreeService from "./family-tree.service";
+import { AddChildrenRequest } from "@/shared/types/family-tree.types";
 
 class FamilyTreeController {
   // GET /api/family-tree/roots
@@ -22,7 +23,26 @@ class FamilyTreeController {
     }
   }
 
-  // GET /api/family-tree/:personId/children
+  // GET /api/family-tree/married-couples
+  async getMarriedCouples(_req: Request, res: Response): Promise<void> {
+    try {
+      const couples = await familyTreeService.getMarriedCouples();
+
+      res.status(200).json({
+        success: true,
+        data: couples,
+        count: couples.length,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch married couples",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  // GET /api/family-tree/children?fatherId=...&motherId=...
   async getChildren(req: Request, res: Response): Promise<void> {
     try {
       const errors = validationResult(req);
@@ -35,9 +55,14 @@ class FamilyTreeController {
         return;
       }
 
-      const { personId } = req.params;
+      const fatherRaw = req.query.fatherId;
+      const motherRaw = req.query.motherId;
+      const fatherId =
+        typeof fatherRaw === "string" && fatherRaw.trim() ? fatherRaw.trim() : undefined;
+      const motherId =
+        typeof motherRaw === "string" && motherRaw.trim() ? motherRaw.trim() : undefined;
       const withSpouse = req.query.withSpouse === "true";
-      const children = await familyTreeService.getChildren(personId, withSpouse);
+      const children = await familyTreeService.getChildren(fatherId, motherId, withSpouse);
 
       res.status(200).json({
         success: true,
@@ -131,8 +156,8 @@ class FamilyTreeController {
         return;
       }
 
-      const { parentId, children } = req.body;
-      const result = await familyTreeService.addChildren(parentId, children);
+      const request: AddChildrenRequest = req.body;
+      const result = await familyTreeService.addChildren(request);
 
       res.status(201).json({
         success: true,
@@ -144,7 +169,7 @@ class FamilyTreeController {
         error instanceof Error && error.message.includes("not found");
       res.status(isNotFound ? 404 : 500).json({
         success: false,
-        error: isNotFound ? "Parent not found" : "Failed to add children",
+        error: isNotFound ? "Parents not found" : "Failed to add children",
         message: error instanceof Error ? error.message : "Unknown error",
       });
     }

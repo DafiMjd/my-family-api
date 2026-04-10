@@ -13,6 +13,7 @@ declare class MarriageService {
     private getSinglePersons;
     private mapRelationshipToResponse;
     private mapPersonToResponse;
+    private validateMarriagePair;
 }
 declare const _default: MarriageService;
 export default _default;

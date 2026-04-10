@@ -4,15 +4,17 @@ import {
   ChildInput,
   FamilyTreeRootEntryResponse,
   FamilyTreeRelativeResponse,
-  FamilyTreeRelativeWithSpouseResponse,
+  FamilyTreeRelativeWithSpousesResponse,
   FamilyTreeClosestRelatedPeopleResponse,
   FamilyTreePerson,
   FamilyTreePersonWithRelation,
-  FamilyTreePersonWithRelationAndSpouse,
+  FamilyTreePersonWithRelationAndSpouses,
   FamilyTreePersonResponse,
+  FamilyTreeSpouseResponse,
+  AddChildrenRequest,
+  MarriedCoupleEntryResponse,
+  ParentType,
 } from "@/shared/types/family-tree.types";
-import { Gender } from "@prisma/client";
-
 class FamilyTreeService {
   async getRoots(): Promise<FamilyTreeRootEntryResponse[]> {
     const roots = await familyTreeRepository.findRootsWithSpouse();
@@ -24,52 +26,87 @@ class FamilyTreeService {
       if (processedIds.has(root.id)) continue;
       processedIds.add(root.id);
 
-      const spouseRaw = root.relationships[0]?.relatedPerson ?? null;
-      const isMarried = spouseRaw !== null;
+      const spouses = root.relationships
+        .filter((relationship) => relationship.relatedPerson._count.childOf === 0)
+        .map((relationship) => ({
+          person: relationship.relatedPerson,
+          startDate: relationship.startDate,
+          endDate: relationship.endDate,
+        }));
 
-      // If the spouse has parents they belong to another family branch,
-      // which means this root person reached the tree through marriage — skip entirely.
-      const spouseHasParents = (spouseRaw?._count.childOf ?? 0) > 0;
-      if (spouseHasParents) continue;
-
-      const spouse = spouseRaw;
-
-      // If spouse is also a root, mark them as processed to avoid a duplicate entry
-      if (spouse && rootIds.has(spouse.id)) {
-        processedIds.add(spouse.id);
+      for (const spouse of spouses) {
+        if (rootIds.has(spouse.person.id)) {
+          processedIds.add(spouse.person.id);
+        }
       }
 
-      const members: FamilyTreePerson[] = spouse ? [root, spouse] : [root];
-      const father = members.find((p) => p.gender === Gender.MAN) ?? null;
-      const mother = members.find((p) => p.gender === Gender.WOMAN) ?? null;
-
       result.push({
-        father: father ? this.mapToPersonResponse(father) : null,
-        mother: mother ? this.mapToPersonResponse(mother) : null,
-        isMarried,
+        ...this.mapToPersonResponse(root),
+        spouses: spouses.map((spouse) =>
+          this.mapToSpouseResponse(spouse.person, spouse.startDate, spouse.endDate)
+        ),
       });
     }
 
     return result;
   }
 
+  async getMarriedCouples(): Promise<MarriedCoupleEntryResponse[]> {
+    const couples = await familyTreeRepository.findMarriedCouples();
+    return couples.map((c) => ({
+      father: this.mapMarriedCouplePerson(c.father),
+      mother: this.mapMarriedCouplePerson(c.mother),
+    }));
+  }
+
   async getChildren(
-    personId: string,
+    fatherId: string | undefined,
+    motherId: string | undefined,
     withSpouse = false
-  ): Promise<FamilyTreeRelativeResponse[] | FamilyTreeRelativeWithSpouseResponse[]> {
-    const exists = await familyTreeRepository.personExists(personId);
-    if (!exists) {
-      throw new Error(`Person with ID '${personId}' not found`);
-    }
-    if (withSpouse) {
-      const children = await familyTreeRepository.findChildrenWithSpouse(personId);
-      if (children === null) {
-        throw new Error(`Person with ID '${personId}' not found`);
-      }
-      return children.map((p) => this.mapToRelativeWithSpouseResponse(p));
+  ): Promise<FamilyTreeRelativeResponse[] | FamilyTreeRelativeWithSpousesResponse[]> {
+    const f = fatherId?.trim();
+    const m = motherId?.trim();
+    const hasFather = Boolean(f);
+    const hasMother = Boolean(m);
+
+    if (!hasFather && !hasMother) {
+      throw new Error("At least one of fatherId or motherId is required");
     }
 
-    const children = await familyTreeRepository.findChildren(personId);
+    if (hasFather && hasMother) {
+      const [fatherExists, motherExists] = await Promise.all([
+        familyTreeRepository.personExists(f!),
+        familyTreeRepository.personExists(m!),
+      ]);
+      if (!fatherExists || !motherExists) {
+        throw new Error("Father or mother not found");
+      }
+
+      if (!(await familyTreeRepository.areMarriedPair(f!, m!))) {
+        throw new Error("Father and mother are not an active married pair");
+      }
+
+      if (withSpouse) {
+        const children = await familyTreeRepository.findChildrenWithSpouseByPair(f!, m!);
+        return children.map((p) => this.mapToRelativeWithSpousesResponse(p));
+      }
+
+      const children = await familyTreeRepository.findChildrenByPair(f!, m!);
+      return children.map((p) => this.mapToRelativeResponse(p));
+    }
+
+    const parentId = (f ?? m) as string;
+    const parentExists = await familyTreeRepository.personExists(parentId);
+    if (!parentExists) {
+      throw new Error("Person not found");
+    }
+
+    if (withSpouse) {
+      const children = await familyTreeRepository.findChildrenWithSpouseByParent(parentId);
+      return children.map((p) => this.mapToRelativeWithSpousesResponse(p));
+    }
+
+    const children = await familyTreeRepository.findChildrenByParent(parentId);
     return children.map((p) => this.mapToRelativeResponse(p));
   }
 
@@ -81,7 +118,11 @@ class FamilyTreeService {
 
     return {
       spouse: result.relationships[0]?.relatedPerson
-        ? this.mapToPersonResponse(result.relationships[0].relatedPerson)
+        ? this.mapToSpouseResponse(
+          result.relationships[0].relatedPerson,
+          result.relationships[0].startDate,
+          result.relationships[0].endDate
+        )
         : null,
       children: result.parentsOf.map((row) =>
         this.mapToRelativeResponse({ ...row.child, relationshipType: row.type })
@@ -102,18 +143,25 @@ class FamilyTreeService {
     return parents.map((p) => this.mapToRelativeResponse(p));
   }
 
-  async addChildren(parentId: string, children: ChildInput[]): Promise<AddChildrenResponse> {
-    const result = await familyTreeRepository.addChildren(parentId, children);
+  async addChildren(request: AddChildrenRequest): Promise<AddChildrenResponse> {
+    const result = await familyTreeRepository.addChildren(request.parent, request.children);
     if (result === null) {
-      throw new Error(`Person with ID '${parentId}' not found`);
+      throw new Error("One or both parents not found");
     }
 
-    const { created, parent, spouse } = result;
-    const connectedParents = spouse ? [parent, spouse] : [parent];
+    const { created, parents } = result;
+
+    const parentsMustHaveDifferentGenders =
+      (parents[0].gender !== "MAN" && parents[1].gender !== "WOMAN") ||
+      (parents[0].gender !== "WOMAN" && parents[1].gender !== "MAN");
+
+    if (!parentsMustHaveDifferentGenders) {
+      throw new Error("Parents must have different genders");
+    }
 
     return {
       children: created.map((c) => this.mapToPersonResponse(c)),
-      connectedParents: connectedParents.map((p) => this.mapToPersonResponse(p)),
+      connectedParents: parents.map((p) => this.mapToPersonResponse(p)),
     };
   }
 
@@ -124,6 +172,14 @@ class FamilyTreeService {
     }
 
     return hasChildren;
+  }
+
+  private mapMarriedCouplePerson(person: FamilyTreePerson): FamilyTreeRelativeWithSpousesResponse {
+    return {
+      ...this.mapToPersonResponse(person),
+      relationshipType: ParentType.BIOLOGICAL,
+      spouses: [],
+    };
   }
 
   private mapToPersonResponse(person: FamilyTreePerson): FamilyTreePersonResponse {
@@ -149,13 +205,27 @@ class FamilyTreeService {
     };
   }
 
-  private mapToRelativeWithSpouseResponse(
-    person: FamilyTreePersonWithRelationAndSpouse
-  ): FamilyTreeRelativeWithSpouseResponse {
+  private mapToRelativeWithSpousesResponse(
+    person: FamilyTreePersonWithRelationAndSpouses
+  ): FamilyTreeRelativeWithSpousesResponse {
     return {
       ...this.mapToPersonResponse(person),
       relationshipType: person.relationshipType,
-      spouse: person.spouse ? this.mapToPersonResponse(person.spouse) : null,
+      spouses: person.spouses.map((spouse) =>
+        this.mapToSpouseResponse(spouse.person, spouse.startDate, spouse.endDate)
+      ),
+    };
+  }
+
+  private mapToSpouseResponse(
+    spouse: FamilyTreePerson,
+    startDate: Date | null,
+    endDate: Date | null
+  ): FamilyTreeSpouseResponse {
+    return {
+      ...this.mapToPersonResponse(spouse),
+      startMarriageDate: startDate ? startDate.toISOString() : null,
+      endMarriageDate: endDate ? endDate.toISOString() : null,
     };
   }
 }

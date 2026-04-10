@@ -54,6 +54,7 @@ app.listen(PORT, () => {
     console.log(`👨‍👩‍👧‍👦 Family API: http://localhost:${PORT}/api/family`);
     console.log(`🌳 Family Tree API: http://localhost:${PORT}/api/family-tree`);
     console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
+    console.log(`🛡️ Admin API: http://localhost:${PORT}/api/admin`);
 });
 exports.default = app;
 //# sourceMappingURL=app.js.map

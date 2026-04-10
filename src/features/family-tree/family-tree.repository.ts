@@ -4,79 +4,216 @@ import {
   ChildInput,
   FamilyTreePerson,
   FamilyTreePersonWithRelation,
-  FamilyTreePersonWithRelationAndSpouse,
-  PersonWithChildrenAndSpouse,
+  FamilyTreePersonWithRelationAndSpouses,
   PersonWithClosestRelatives,
-  RootPersonWithSpouse,
+  RootPersonWithSpouses,
 } from "@/shared/types/family-tree.types";
 
 type AddChildrenResult = {
   created: FamilyTreePerson[];
-  parent: FamilyTreePerson;
-  spouse: FamilyTreePerson | null;
+  parents: [FamilyTreePerson, FamilyTreePerson];
 };
 
 class FamilyTreeRepository {
-  // Find all first-generation persons with their active spouse (single query)
-  async findRootsWithSpouse(): Promise<RootPersonWithSpouse[]> {
+  // Find all first-generation persons with their active spouse (single query).
+  // Excludes people who have no parents but are married to someone who does (they appear under that spouse's family line).
+  async findRootsWithSpouse(): Promise<RootPersonWithSpouses[]> {
     const rows = await prisma.person.findMany({
       where: {
         childOf: { none: {} },
+        NOT: {
+          OR: [
+            {
+              relationships: {
+                some: {
+                  type: RelationshipType.SPOUSE,
+                  relatedPerson: {
+                    childOf: { some: {} },
+                  },
+                },
+              },
+            },
+            {
+              relatedRelationships: {
+                some: {
+                  type: RelationshipType.SPOUSE,
+                  person: {
+                    childOf: { some: {} },
+                  },
+                },
+              },
+            },
+          ],
+        },
       },
       include: {
         relationships: {
-          where: { type: RelationshipType.SPOUSE, endDate: null },
+          where: { type: RelationshipType.SPOUSE },
           include: {
             relatedPerson: {
               include: { _count: { select: { childOf: true } } },
             },
           },
-          take: 1,
         },
       },
       orderBy: { birthDate: "asc" },
     });
 
-    return rows as RootPersonWithSpouse[];
+    return rows as RootPersonWithSpouses[];
   }
 
-  // Find all children of a given person, each child carrying their own active spouse — single query.
-  // Returns null when the person does not exist.
-  async findChildrenWithSpouse(personId: string): Promise<FamilyTreePersonWithRelationAndSpouse[] | null> {
-    const person = await prisma.person.findUnique({
-      where: { id: personId },
-      select: {
-        parentsOf: {
-          include: {
-            child: {
-              include: {
-                relationships: {
-                  where: { type: RelationshipType.SPOUSE, endDate: null },
-                  include: { relatedPerson: true },
-                  take: 1,
-                },
-              },
-            },
-          },
-          orderBy: { child: { birthDate: "asc" } },
-        },
+  /**
+   * Distinct opposite-gender spouse pairs from active SPOUSE rows.
+   * Uses only rows where personId < relatedPersonId so bidirectional pairs are counted once.
+   */
+  async findMarriedCouples(): Promise<Array<{ father: FamilyTreePerson; mother: FamilyTreePerson }>> {
+    const rows = await prisma.relationship.findMany({
+      where: { type: RelationshipType.SPOUSE },
+      include: {
+        person: true,
+        relatedPerson: true,
       },
     });
 
-    if (!person) return null;
+    const couples: Array<{ father: FamilyTreePerson; mother: FamilyTreePerson }> = [];
 
-    const raw = person as unknown as NonNullable<PersonWithChildrenAndSpouse>;
-    return raw.parentsOf.map((row) => ({
+    for (const row of rows) {
+      if (row.personId >= row.relatedPersonId) {
+        continue;
+      }
+
+      const a = row.person;
+      const b = row.relatedPerson;
+
+      if (a.gender === "MAN" && b.gender === "WOMAN") {
+        couples.push({ father: a, mother: b });
+      } else if (a.gender === "WOMAN" && b.gender === "MAN") {
+        couples.push({ father: b, mother: a });
+      }
+    }
+
+    couples.sort((x, y) => {
+      const byFather = x.father.name.localeCompare(y.father.name);
+      if (byFather !== 0) {
+        return byFather;
+      }
+      return x.mother.name.localeCompare(y.mother.name);
+    });
+
+    return couples;
+  }
+
+  async areMarriedPair(fatherId: string, motherId: string): Promise<boolean> {
+    const relationship = await prisma.relationship.findFirst({
+      where: {
+        type: RelationshipType.SPOUSE,
+        OR: [
+          { personId: fatherId, relatedPersonId: motherId },
+          { personId: motherId, relatedPersonId: fatherId },
+        ],
+      },
+    });
+
+    return Boolean(relationship);
+  }
+
+  // Children of a father/mother pair (linked to both), each child carrying their own spouses.
+  async findChildrenWithSpouseByPair(
+    fatherId: string,
+    motherId: string
+  ): Promise<FamilyTreePersonWithRelationAndSpouses[]> {
+    const rows = await prisma.parentChild.findMany({
+      where: {
+        parentId: fatherId,
+        child: {
+          childOf: {
+            some: {
+              parentId: motherId,
+            },
+          },
+        },
+      },
+      include: {
+        child: {
+          include: {
+            relationships: {
+              where: { type: RelationshipType.SPOUSE },
+              include: { relatedPerson: true },
+            },
+          },
+        },
+      },
+      orderBy: { child: { birthDate: "asc" } },
+    });
+
+    return rows.map((row) => ({
       ...row.child,
       relationshipType: row.type,
-      spouse: row.child.relationships[0]?.relatedPerson ?? null,
+      spouses: row.child.relationships.map((relationship) => ({
+        person: relationship.relatedPerson,
+        startDate: relationship.startDate,
+        endDate: relationship.endDate,
+      })),
     }));
   }
 
-  // Find all children of a given person
-  async findChildren(personId: string): Promise<FamilyTreePersonWithRelation[]> {
+  async findChildrenByPair(fatherId: string, motherId: string): Promise<FamilyTreePersonWithRelation[]> {
     const rows = await prisma.parentChild.findMany({
-      where: { parentId: personId },
+      where: {
+        parentId: fatherId,
+        child: {
+          childOf: {
+            some: {
+              parentId: motherId,
+            },
+          },
+        },
+      },
+      include: {
+        child: true,
+      },
+      orderBy: { child: { birthDate: "asc" } },
+    });
+
+    return rows.map((row) => ({
+      ...row.child,
+      relationshipType: row.type,
+    }));
+  }
+
+  // Children linked to this parent (single parentId), each child carrying their own spouses.
+  async findChildrenWithSpouseByParent(
+    parentId: string
+  ): Promise<FamilyTreePersonWithRelationAndSpouses[]> {
+    const rows = await prisma.parentChild.findMany({
+      where: { parentId },
+      include: {
+        child: {
+          include: {
+            relationships: {
+              where: { type: RelationshipType.SPOUSE },
+              include: { relatedPerson: true },
+            },
+          },
+        },
+      },
+      orderBy: { child: { birthDate: "asc" } },
+    });
+
+    return rows.map((row) => ({
+      ...row.child,
+      relationshipType: row.type,
+      spouses: row.child.relationships.map((relationship) => ({
+        person: relationship.relatedPerson,
+        startDate: relationship.startDate,
+        endDate: relationship.endDate,
+      })),
+    }));
+  }
+
+  async findChildrenByParent(parentId: string): Promise<FamilyTreePersonWithRelation[]> {
+    const rows = await prisma.parentChild.findMany({
+      where: { parentId },
       include: {
         child: true,
       },
@@ -136,23 +273,18 @@ class FamilyTreeRepository {
     return count > 0;
   }
 
-  // Create new persons as children of the given parent (and their spouse if one exists).
-  // Returns null when the parent does not exist.
-  async addChildren(parentId: string, children: ChildInput[]): Promise<AddChildrenResult | null> {
-    const parent = await prisma.person.findUnique({
-      where: { id: parentId },
-      include: {
-        relationships: {
-          where: { type: RelationshipType.SPOUSE, endDate: null },
-          include: { relatedPerson: true },
-          take: 1,
-        },
-      },
-    });
+  // Create new persons as children of the given parent pair.
+  // Returns null when one or both parents do not exist.
+  async addChildren(
+    parent: { fatherId: string; motherId: string },
+    children: ChildInput[]
+  ): Promise<AddChildrenResult | null> {
+    const [father, mother] = await Promise.all([
+      prisma.person.findUnique({ where: { id: parent.fatherId } }),
+      prisma.person.findUnique({ where: { id: parent.motherId } }),
+    ]);
 
-    if (!parent) return null;
-
-    const spouse = (parent.relationships[0]?.relatedPerson ?? null) as FamilyTreePerson | null;
+    if (!father || !mother) return null;
 
     const created = await prisma.$transaction(
       children.map((child) =>
@@ -167,21 +299,17 @@ class FamilyTreeRepository {
             childOf: {
               create: [
                 {
-                  parentId: parent.id,
-                  parentName: parent.name,
+                  parentId: father.id,
+                  parentName: father.name,
                   childName: child.name,
                   type: ParentType.BIOLOGICAL,
                 },
-                ...(spouse
-                  ? [
-                      {
-                        parentId: spouse.id,
-                        parentName: spouse.name,
-                        childName: child.name,
-                        type: ParentType.BIOLOGICAL,
-                      },
-                    ]
-                  : []),
+                {
+                  parentId: mother.id,
+                  parentName: mother.name,
+                  childName: child.name,
+                  type: ParentType.BIOLOGICAL,
+                },
               ],
             },
           },
@@ -189,7 +317,10 @@ class FamilyTreeRepository {
       )
     );
 
-    return { created: created as FamilyTreePerson[], parent: parent as FamilyTreePerson, spouse };
+    return {
+      created: created as FamilyTreePerson[],
+      parents: [father as FamilyTreePerson, mother as FamilyTreePerson],
+    };
   }
 
   // Check whether a person has at least one child using a single lightweight query.

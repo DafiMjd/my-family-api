@@ -57,9 +57,8 @@ class MarriageController {
                 });
                 return;
             }
-            const { personId } = req.body;
-            const { endDate } = req.body;
-            const divorceData = { personId, endDate };
+            const { fatherId, motherId, endDate } = req.body;
+            const divorceData = { fatherId, motherId, endDate };
             const result = await marriage_service_1.default.divorce(divorceData);
             res.status(200).json(result);
         }
@@ -79,8 +78,8 @@ class MarriageController {
                 });
                 return;
             }
-            const { personId } = req.body;
-            const cancelData = { personId };
+            const { fatherId, motherId } = req.body;
+            const cancelData = { fatherId, motherId };
             const result = await marriage_service_1.default.cancelMarriage(cancelData);
             res.status(200).json(result);
         }
@@ -100,8 +99,8 @@ class MarriageController {
                 });
                 return;
             }
-            const { personId } = req.body;
-            const cancelData = { personId };
+            const { fatherId, motherId } = req.body;
+            const cancelData = { fatherId, motherId };
             const result = await marriage_service_1.default.cancelDivorce(cancelData);
             res.status(200).json(result);
         }
@@ -168,7 +167,10 @@ class MarriageController {
             }
             if (message.includes("Cannot marry") ||
                 message.includes("personId") ||
-                message.includes("required")) {
+                message.includes("fatherId") ||
+                message.includes("motherId") ||
+                message.includes("required") ||
+                message.includes("endDate")) {
                 return {
                     statusCode: 400,
                     response: {

@@ -1,5 +1,5 @@
 import { Gender, FamilyMemberRole } from "@prisma/client";
-import { CreatePersonRequest, CreatePersonRequestWithSpouse } from "./person.types";
+import { CreatePersonRequest, CreatePersonRequestWithSpouse, ParentPairInput } from "./person.types";
 
 // Database model types
 export type Family = {
@@ -44,11 +44,11 @@ export interface CreateFamilyRequestById {
 }
 
 /**
- * Father or mother row: person fields plus optional parentId (existing person who is their parent).
- * If parentId is null, this parent is treated as first generation for that branch.
+ * Father or mother row: person fields plus optional parent pair.
+ * If parent is null, this parent is treated as first generation for that branch.
  */
 export interface CreateFamilyParentInput extends CreatePersonRequest {
-  parentId?: string | null;
+  parent?: ParentPairInput | null;
 }
 
 /**

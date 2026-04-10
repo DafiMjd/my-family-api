@@ -4,8 +4,12 @@ import { addChildrenValidation, personIdParamValidation, withSpouseQueryValidati
 
 const router = Router();
 
-// GET /api/family-tree/roots - Get first generation (persons with no parents)
+// GET /api/family-tree/roots - First generation (no parents). Omits people married to a descendant
+// (spouse has parents): they are shown under the spouse's family line instead.
 router.get("/roots", familyTreeController.getRoots.bind(familyTreeController));
+
+// GET /api/family-tree/married-couples - Opposite-gender spouse pairs (for parent pickers)
+router.get("/married-couples", familyTreeController.getMarriedCouples.bind(familyTreeController));
 
 // POST /api/family-tree/add-children - Add new children to a parent (and their spouse)
 router.post(
@@ -14,10 +18,9 @@ router.post(
   familyTreeController.addChildren.bind(familyTreeController)
 );
 
-// GET /api/family-tree/:personId/children - Get children of a person
+// GET /api/family-tree/children - Get children of a father/mother pair
 router.get(
-  "/:personId/children",
-  personIdParamValidation,
+  "/children",
   withSpouseQueryValidation,
   familyTreeController.getChildren.bind(familyTreeController)
 );

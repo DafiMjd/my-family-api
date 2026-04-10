@@ -31,11 +31,21 @@ class FamilyService {
       throw new Error("Mother must be female");
     }
 
+    if (
+      (fatherIn.parent && (!fatherIn.parent.fatherId || !fatherIn.parent.motherId)) ||
+      (motherIn.parent && (!motherIn.parent.fatherId || !motherIn.parent.motherId))
+    ) {
+      throw new Error("parent.fatherId and parent.motherId are required when parent is provided");
+    }
+
     const grandparentIds = [
       ...new Set(
-        [fatherIn.parentId, motherIn.parentId].filter((id): id is string =>
-          Boolean(id)
-        )
+        [
+          fatherIn.parent?.fatherId,
+          fatherIn.parent?.motherId,
+          motherIn.parent?.fatherId,
+          motherIn.parent?.motherId,
+        ].filter((id): id is string => Boolean(id))
       ),
     ];
 
@@ -49,8 +59,30 @@ class FamilyService {
       }
       if (grandparentById.size !== grandparentIds.length) {
         throw new Error(
-          "Grandparent not found: parentId must reference an existing person"
+          "Grandparent not found: parent pair must reference existing persons"
         );
+      }
+    }
+
+    if (fatherIn.parent) {
+      const fatherGrandfather = await personRepository.findById(fatherIn.parent.fatherId);
+      const fatherGrandmother = await personRepository.findById(fatherIn.parent.motherId);
+      if (!fatherGrandfather || !fatherGrandmother) {
+        throw new Error("Father parent pair not found");
+      }
+      if (fatherGrandfather.gender !== Gender.MAN || fatherGrandmother.gender !== Gender.WOMAN) {
+        throw new Error("Father parent pair must be MAN (fatherId) and WOMAN (motherId)");
+      }
+    }
+
+    if (motherIn.parent) {
+      const motherGrandfather = await personRepository.findById(motherIn.parent.fatherId);
+      const motherGrandmother = await personRepository.findById(motherIn.parent.motherId);
+      if (!motherGrandfather || !motherGrandmother) {
+        throw new Error("Mother parent pair not found");
+      }
+      if (motherGrandfather.gender !== Gender.MAN || motherGrandmother.gender !== Gender.WOMAN) {
+        throw new Error("Mother parent pair must be MAN (fatherId) and WOMAN (motherId)");
       }
     }
 
@@ -60,23 +92,43 @@ class FamilyService {
     ]);
 
     const grandparentLinks: Promise<void>[] = [];
-    if (fatherIn.parentId) {
-      const gp = grandparentById.get(fatherIn.parentId)!;
+    if (fatherIn.parent) {
+      const fatherGrandfather = grandparentById.get(fatherIn.parent.fatherId)!;
+      const fatherGrandmother = grandparentById.get(fatherIn.parent.motherId)!;
       grandparentLinks.push(
-        personRepository.linkBiologicalParentsForDesignatedParent(
+        personRepository.upsertBiologicalParentChild(
+          fatherGrandfather.id,
+          fatherGrandfather.name,
           father.id,
-          father.name,
-          gp
+          father.name
+        )
+      );
+      grandparentLinks.push(
+        personRepository.upsertBiologicalParentChild(
+          fatherGrandmother.id,
+          fatherGrandmother.name,
+          father.id,
+          father.name
         )
       );
     }
-    if (motherIn.parentId) {
-      const gp = grandparentById.get(motherIn.parentId)!;
+    if (motherIn.parent) {
+      const motherGrandfather = grandparentById.get(motherIn.parent.fatherId)!;
+      const motherGrandmother = grandparentById.get(motherIn.parent.motherId)!;
       grandparentLinks.push(
-        personRepository.linkBiologicalParentsForDesignatedParent(
+        personRepository.upsertBiologicalParentChild(
+          motherGrandfather.id,
+          motherGrandfather.name,
           mother.id,
-          mother.name,
-          gp
+          mother.name
+        )
+      );
+      grandparentLinks.push(
+        personRepository.upsertBiologicalParentChild(
+          motherGrandmother.id,
+          motherGrandmother.name,
+          mother.id,
+          mother.name
         )
       );
     }
@@ -177,11 +229,11 @@ class FamilyService {
   }
 
   private splitFamilyParentInput(input: CreateFamilyParentInput): {
-    parentId: string | null;
+    parent: { fatherId: string; motherId: string } | null;
     person: CreatePersonRequest;
   } {
-    const { parentId, ...person } = input;
-    return { parentId: parentId ?? null, person };
+    const { parent, ...person } = input;
+    return { parent: parent ?? null, person };
   }
 
   // Create a new family

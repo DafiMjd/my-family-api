@@ -1,12 +1,12 @@
-import { ChildInput, FamilyTreePerson, FamilyTreePersonWithRelation, FamilyTreePersonWithRelationAndSpouse, PersonWithClosestRelatives, RootPersonWithSpouse } from "../../shared/types/family-tree.types";
+import { ChildInput, FamilyTreePerson, FamilyTreePersonWithRelation, FamilyTreePersonWithRelationAndSpouses, PersonWithClosestRelatives, RootPersonWithSpouses } from "../../shared/types/family-tree.types";
 type AddChildrenResult = {
     created: FamilyTreePerson[];
     parent: FamilyTreePerson;
     spouse: FamilyTreePerson | null;
 };
 declare class FamilyTreeRepository {
-    findRootsWithSpouse(): Promise<RootPersonWithSpouse[]>;
-    findChildrenWithSpouse(personId: string): Promise<FamilyTreePersonWithRelationAndSpouse[] | null>;
+    findRootsWithSpouse(): Promise<RootPersonWithSpouses[]>;
+    findChildrenWithSpouse(personId: string): Promise<FamilyTreePersonWithRelationAndSpouses[] | null>;
     findChildren(personId: string): Promise<FamilyTreePersonWithRelation[]>;
     findParents(personId: string): Promise<FamilyTreePersonWithRelation[]>;
     findClosestRelatedPeople(personId: string): Promise<PersonWithClosestRelatives>;

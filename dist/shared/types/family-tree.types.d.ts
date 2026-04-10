@@ -19,6 +19,17 @@ export type RootPersonWithSpouse = FamilyTreePerson & {
         };
     }>;
 };
+export type RootPersonWithSpouses = FamilyTreePerson & {
+    relationships: Array<{
+        startDate: Date | null;
+        endDate: Date | null;
+        relatedPerson: FamilyTreePerson & {
+            _count: {
+                childOf: number;
+            };
+        };
+    }>;
+};
 export type FamilyTreePersonWithRelation = FamilyTreePerson & {
     relationshipType: ParentType;
 };
@@ -26,15 +37,21 @@ export type PersonWithChildrenAndSpouse = {
     parentsOf: Array<{
         child: FamilyTreePerson & {
             relationships: Array<{
+                startDate: Date | null;
+                endDate: Date | null;
                 relatedPerson: FamilyTreePerson;
             }>;
         };
         type: ParentType;
     }>;
 } | null;
-export type FamilyTreePersonWithRelationAndSpouse = FamilyTreePerson & {
+export type FamilyTreePersonWithRelationAndSpouses = FamilyTreePerson & {
     relationshipType: ParentType;
-    spouse: FamilyTreePerson | null;
+    spouses: Array<{
+        person: FamilyTreePerson;
+        startDate: Date | null;
+        endDate: Date | null;
+    }>;
 };
 export interface FamilyTreePersonResponse {
     id: string;
@@ -47,9 +64,12 @@ export interface FamilyTreePersonResponse {
     createdAt: string;
     updatedAt: string;
 }
-export interface FamilyTreeRootEntryResponse {
-    father: FamilyTreePersonResponse | null;
-    mother: FamilyTreePersonResponse | null;
+export interface FamilyTreeSpouseResponse extends FamilyTreePersonResponse {
+    startMarriageDate: string | null;
+    endMarriageDate: string | null;
+}
+export interface FamilyTreeRootEntryResponse extends FamilyTreePersonResponse {
+    spouses: FamilyTreeSpouseResponse[];
     isMarried: boolean;
 }
 export type FamilyTreeRootsResponse = FamilyTreePersonResponse;
@@ -57,11 +77,16 @@ export interface FamilyTreeRelativeResponse extends FamilyTreePersonResponse {
     relationshipType: ParentType;
 }
 export interface FamilyTreeRelativeWithSpouseResponse extends FamilyTreeRelativeResponse {
-    spouse: FamilyTreePersonResponse | null;
+    spouse: FamilyTreeSpouseResponse | null;
+}
+export interface FamilyTreeRelativeWithSpousesResponse extends FamilyTreeRelativeResponse {
+    spouses: FamilyTreeSpouseResponse[];
 }
 export type PersonWithClosestRelatives = {
     relationships: Array<{
         relatedPerson: FamilyTreePerson;
+        startDate: Date | null;
+        endDate: Date | null;
     }>;
     parentsOf: Array<{
         child: FamilyTreePerson;
@@ -73,7 +98,7 @@ export type PersonWithClosestRelatives = {
     }>;
 } | null;
 export interface FamilyTreeClosestRelatedPeopleResponse {
-    spouse: FamilyTreePersonResponse | null;
+    spouse: FamilyTreeSpouseResponse | null;
     children: FamilyTreeRelativeResponse[];
     parents: FamilyTreeRelativeResponse[];
 }
