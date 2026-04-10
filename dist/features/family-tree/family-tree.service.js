@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const family_tree_repository_1 = __importDefault(require("./family-tree.repository"));
+const family_tree_types_1 = require("../../shared/types/family-tree.types");
 class FamilyTreeService {
     async getRoots() {
         const roots = await family_tree_repository_1.default.findRootsWithSpouse();
@@ -21,7 +22,6 @@ class FamilyTreeService {
                 startDate: relationship.startDate,
                 endDate: relationship.endDate,
             }));
-            const isMarried = spouses.length > 0;
             for (const spouse of spouses) {
                 if (rootIds.has(spouse.person.id)) {
                     processedIds.add(spouse.person.id);
@@ -30,24 +30,53 @@ class FamilyTreeService {
             result.push({
                 ...this.mapToPersonResponse(root),
                 spouses: spouses.map((spouse) => this.mapToSpouseResponse(spouse.person, spouse.startDate, spouse.endDate)),
-                isMarried,
             });
         }
         return result;
     }
-    async getChildren(personId, withSpouse = false) {
-        const exists = await family_tree_repository_1.default.personExists(personId);
-        if (!exists) {
-            throw new Error(`Person with ID '${personId}' not found`);
+    async getMarriedCouples() {
+        const couples = await family_tree_repository_1.default.findMarriedCouples();
+        return couples.map((c) => ({
+            father: this.mapMarriedCouplePerson(c.father),
+            mother: this.mapMarriedCouplePerson(c.mother),
+        }));
+    }
+    async getChildren(fatherId, motherId, withSpouse = false) {
+        const f = fatherId?.trim();
+        const m = motherId?.trim();
+        const hasFather = Boolean(f);
+        const hasMother = Boolean(m);
+        if (!hasFather && !hasMother) {
+            throw new Error("At least one of fatherId or motherId is required");
+        }
+        if (hasFather && hasMother) {
+            const [fatherExists, motherExists] = await Promise.all([
+                family_tree_repository_1.default.personExists(f),
+                family_tree_repository_1.default.personExists(m),
+            ]);
+            if (!fatherExists || !motherExists) {
+                throw new Error("Father or mother not found");
+            }
+            if (!(await family_tree_repository_1.default.areMarriedPair(f, m))) {
+                throw new Error("Father and mother are not an active married pair");
+            }
+            if (withSpouse) {
+                const children = await family_tree_repository_1.default.findChildrenWithSpouseByPair(f, m);
+                return children.map((p) => this.mapToRelativeWithSpousesResponse(p));
+            }
+            const children = await family_tree_repository_1.default.findChildrenByPair(f, m);
+            return children.map((p) => this.mapToRelativeResponse(p));
+        }
+        const parentId = (f ?? m);
+        const parentExists = await family_tree_repository_1.default.personExists(parentId);
+        if (!parentExists) {
+            throw new Error("Person not found");
         }
         if (withSpouse) {
-            const children = await family_tree_repository_1.default.findChildrenWithSpouse(personId);
-            if (children === null) {
-                throw new Error(`Person with ID '${personId}' not found`);
-            }
+            const children = await family_tree_repository_1.default.findChildrenWithSpouseByParent(parentId);
             return children.map((p) => this.mapToRelativeWithSpousesResponse(p));
         }
-        const children = await family_tree_repository_1.default.findChildren(personId);
+        const children = await family_tree_repository_1.default.findChildrenByParent(parentId);
         return children.map((p) => this.mapToRelativeResponse(p));
     }
     async getClosestRelatedPeople(personId) {
@@ -71,16 +100,20 @@ class FamilyTreeService {
         const parents = await family_tree_repository_1.default.findParents(personId);
         return parents.map((p) => this.mapToRelativeResponse(p));
     }
-    async addChildren(parentId, children) {
-        const result = await family_tree_repository_1.default.addChildren(parentId, children);
+    async addChildren(request) {
+        const result = await family_tree_repository_1.default.addChildren(request.parent, request.children);
         if (result === null) {
-            throw new Error(`Person with ID '${parentId}' not found`);
+            throw new Error("One or both parents not found");
         }
-        const { created, parent, spouse } = result;
-        const connectedParents = spouse ? [parent, spouse] : [parent];
+        const { created, parents } = result;
+        const parentsMustHaveDifferentGenders = (parents[0].gender !== "MAN" && parents[1].gender !== "WOMAN") ||
+            (parents[0].gender !== "WOMAN" && parents[1].gender !== "MAN");
+        if (!parentsMustHaveDifferentGenders) {
+            throw new Error("Parents must have different genders");
+        }
         return {
             children: created.map((c) => this.mapToPersonResponse(c)),
-            connectedParents: connectedParents.map((p) => this.mapToPersonResponse(p)),
+            connectedParents: parents.map((p) => this.mapToPersonResponse(p)),
         };
     }
     async hasChildren(personId) {
@@ -89,6 +122,30 @@ class FamilyTreeService {
             throw new Error(`Person with ID '${personId}' not found`);
         }
         return hasChildren;
+    }
+    async getChildrenCandidates(limit, offset) {
+        const { data, total } = await family_tree_repository_1.default.findChildrenCandidates(limit, offset);
+        return { data: data.map((p) => this.mapDbPersonToPersonResponse(p)), total };
+    }
+    mapDbPersonToPersonResponse(person) {
+        return {
+            id: person.id,
+            name: person.name,
+            gender: person.gender,
+            birthDate: person.birthDate.toISOString(),
+            deathDate: person.deathDate ? person.deathDate.toISOString() : null,
+            bio: person.bio,
+            profilePictureUrl: person.profilePictureUrl,
+            createdAt: person.createdAt.toISOString(),
+            updatedAt: person.updatedAt.toISOString(),
+        };
+    }
+    mapMarriedCouplePerson(person) {
+        return {
+            ...this.mapToPersonResponse(person),
+            relationshipType: family_tree_types_1.ParentType.BIOLOGICAL,
+            spouses: [],
+        };
     }
     mapToPersonResponse(person) {
         return {

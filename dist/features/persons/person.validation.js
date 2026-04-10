@@ -16,9 +16,18 @@ exports.createPersonValidation = [
         .optional({ nullable: true })
         .isDate(),
     profilePictureUrlValidation,
-    (0, express_validator_1.body)("parentId", "parentId must be a valid UUID")
+    (0, express_validator_1.body)("parent")
         .optional({ nullable: true })
-        .isUUID(),
+        .isObject()
+        .withMessage("parent must be an object"),
+    (0, express_validator_1.body)("parent.fatherId")
+        .optional()
+        .isUUID()
+        .withMessage("parent.fatherId must be a valid UUID"),
+    (0, express_validator_1.body)("parent.motherId")
+        .optional()
+        .isUUID()
+        .withMessage("parent.motherId must be a valid UUID"),
 ];
 const buildCreatePersonValidation = (prefix = "") => [
     (0, express_validator_1.body)(`${prefix}name`, "name is required").exists(),
@@ -78,9 +87,18 @@ const buildCreatePersonValidationIfParentExists = (fieldPrefix) => {
 };
 exports.buildCreatePersonValidationIfParentExists = buildCreatePersonValidationIfParentExists;
 const buildCreateFamilyParentValidation = (prefix) => [
-    (0, express_validator_1.body)(`${prefix}parentId`, "parentId must be a valid UUID")
+    (0, express_validator_1.body)(`${prefix}parent`)
         .optional({ nullable: true })
-        .isUUID(),
+        .isObject()
+        .withMessage("parent must be an object"),
+    (0, express_validator_1.body)(`${prefix}parent.fatherId`)
+        .optional()
+        .isUUID()
+        .withMessage("parent.fatherId must be a valid UUID"),
+    (0, express_validator_1.body)(`${prefix}parent.motherId`)
+        .optional()
+        .isUUID()
+        .withMessage("parent.motherId must be a valid UUID"),
     ...(0, exports.buildCreatePersonValidation)(prefix),
 ];
 exports.buildCreateFamilyParentValidation = buildCreateFamilyParentValidation;

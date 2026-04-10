@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { latestPersonsQueryValidation } from "@/features/persons/person.validation";
 import familyTreeController from "./family-tree.controller";
 import { addChildrenValidation, personIdParamValidation, withSpouseQueryValidation } from "./family-tree.validation";
 
@@ -23,6 +24,13 @@ router.get(
   "/children",
   withSpouseQueryValidation,
   familyTreeController.getChildren.bind(familyTreeController)
+);
+
+// GET /api/family-tree/children-candidate — no parents, not in an active marriage (paginated: limit, offset)
+router.get(
+  "/children-candidate",
+  latestPersonsQueryValidation,
+  familyTreeController.getChildrenCandidates.bind(familyTreeController)
 );
 
 // GET /api/family-tree/:personId/closest-related-people - Get spouse, children, and parents in one call

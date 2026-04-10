@@ -23,6 +23,54 @@ class FamilyTreeController {
             });
         }
     }
+    async getMarriedCouples(_req, res) {
+        try {
+            const couples = await family_tree_service_1.default.getMarriedCouples();
+            res.status(200).json({
+                success: true,
+                data: couples,
+                count: couples.length,
+            });
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                error: "Failed to fetch married couples",
+                message: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
+    async getChildrenCandidates(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: "BAD_REQUEST",
+                    message: errors.array(),
+                });
+                return;
+            }
+            const limit = req.query.limit !== undefined ? Number(req.query.limit) : 10;
+            const offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
+            const { data, total } = await family_tree_service_1.default.getChildrenCandidates(limit, offset);
+            res.status(200).json({
+                success: true,
+                data,
+                count: data.length,
+                total,
+                limit: limit ?? null,
+                offset,
+            });
+        }
+        catch (error) {
+            res.status(500).json({
+                success: false,
+                error: "Failed to fetch children candidates",
+                message: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
     async getChildren(req, res) {
         try {
             const errors = (0, express_validator_1.validationResult)(req);
@@ -34,9 +82,12 @@ class FamilyTreeController {
                 });
                 return;
             }
-            const { personId } = req.params;
+            const fatherRaw = req.query.fatherId;
+            const motherRaw = req.query.motherId;
+            const fatherId = typeof fatherRaw === "string" && fatherRaw.trim() ? fatherRaw.trim() : undefined;
+            const motherId = typeof motherRaw === "string" && motherRaw.trim() ? motherRaw.trim() : undefined;
             const withSpouse = req.query.withSpouse === "true";
-            const children = await family_tree_service_1.default.getChildren(personId, withSpouse);
+            const children = await family_tree_service_1.default.getChildren(fatherId, motherId, withSpouse);
             res.status(200).json({
                 success: true,
                 data: children,
@@ -118,8 +169,8 @@ class FamilyTreeController {
                 });
                 return;
             }
-            const { parentId, children } = req.body;
-            const result = await family_tree_service_1.default.addChildren(parentId, children);
+            const request = req.body;
+            const result = await family_tree_service_1.default.addChildren(request);
             res.status(201).json({
                 success: true,
                 data: result,
@@ -130,7 +181,7 @@ class FamilyTreeController {
             const isNotFound = error instanceof Error && error.message.includes("not found");
             res.status(isNotFound ? 404 : 500).json({
                 success: false,
-                error: isNotFound ? "Parent not found" : "Failed to add children",
+                error: isNotFound ? "Parents not found" : "Failed to add children",
                 message: error instanceof Error ? error.message : "Unknown error",
             });
         }

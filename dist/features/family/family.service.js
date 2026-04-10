@@ -17,8 +17,17 @@ class FamilyService {
         if (motherIn.person.gender !== client_1.Gender.WOMAN) {
             throw new Error("Mother must be female");
         }
+        if ((fatherIn.parent && (!fatherIn.parent.fatherId || !fatherIn.parent.motherId)) ||
+            (motherIn.parent && (!motherIn.parent.fatherId || !motherIn.parent.motherId))) {
+            throw new Error("parent.fatherId and parent.motherId are required when parent is provided");
+        }
         const grandparentIds = [
-            ...new Set([fatherIn.parentId, motherIn.parentId].filter((id) => Boolean(id))),
+            ...new Set([
+                fatherIn.parent?.fatherId,
+                fatherIn.parent?.motherId,
+                motherIn.parent?.fatherId,
+                motherIn.parent?.motherId,
+            ].filter((id) => Boolean(id))),
         ];
         const grandparentById = new Map();
         if (grandparentIds.length > 0) {
@@ -27,7 +36,27 @@ class FamilyService {
                 grandparentById.set(p.id, { id: p.id, name: p.name });
             }
             if (grandparentById.size !== grandparentIds.length) {
-                throw new Error("Grandparent not found: parentId must reference an existing person");
+                throw new Error("Grandparent not found: parent pair must reference existing persons");
+            }
+        }
+        if (fatherIn.parent) {
+            const fatherGrandfather = await person_repository_1.default.findById(fatherIn.parent.fatherId);
+            const fatherGrandmother = await person_repository_1.default.findById(fatherIn.parent.motherId);
+            if (!fatherGrandfather || !fatherGrandmother) {
+                throw new Error("Father parent pair not found");
+            }
+            if (fatherGrandfather.gender !== client_1.Gender.MAN || fatherGrandmother.gender !== client_1.Gender.WOMAN) {
+                throw new Error("Father parent pair must be MAN (fatherId) and WOMAN (motherId)");
+            }
+        }
+        if (motherIn.parent) {
+            const motherGrandfather = await person_repository_1.default.findById(motherIn.parent.fatherId);
+            const motherGrandmother = await person_repository_1.default.findById(motherIn.parent.motherId);
+            if (!motherGrandfather || !motherGrandmother) {
+                throw new Error("Mother parent pair not found");
+            }
+            if (motherGrandfather.gender !== client_1.Gender.MAN || motherGrandmother.gender !== client_1.Gender.WOMAN) {
+                throw new Error("Mother parent pair must be MAN (fatherId) and WOMAN (motherId)");
             }
         }
         const [father, mother] = await Promise.all([
@@ -35,13 +64,17 @@ class FamilyService {
             person_repository_1.default.create(motherIn.person),
         ]);
         const grandparentLinks = [];
-        if (fatherIn.parentId) {
-            const gp = grandparentById.get(fatherIn.parentId);
-            grandparentLinks.push(person_repository_1.default.linkBiologicalParentsForDesignatedParent(father.id, father.name, gp));
+        if (fatherIn.parent) {
+            const fatherGrandfather = grandparentById.get(fatherIn.parent.fatherId);
+            const fatherGrandmother = grandparentById.get(fatherIn.parent.motherId);
+            grandparentLinks.push(person_repository_1.default.upsertBiologicalParentChild(fatherGrandfather.id, fatherGrandfather.name, father.id, father.name));
+            grandparentLinks.push(person_repository_1.default.upsertBiologicalParentChild(fatherGrandmother.id, fatherGrandmother.name, father.id, father.name));
         }
-        if (motherIn.parentId) {
-            const gp = grandparentById.get(motherIn.parentId);
-            grandparentLinks.push(person_repository_1.default.linkBiologicalParentsForDesignatedParent(mother.id, mother.name, gp));
+        if (motherIn.parent) {
+            const motherGrandfather = grandparentById.get(motherIn.parent.fatherId);
+            const motherGrandmother = grandparentById.get(motherIn.parent.motherId);
+            grandparentLinks.push(person_repository_1.default.upsertBiologicalParentChild(motherGrandfather.id, motherGrandfather.name, mother.id, mother.name));
+            grandparentLinks.push(person_repository_1.default.upsertBiologicalParentChild(motherGrandmother.id, motherGrandmother.name, mother.id, mother.name));
         }
         await Promise.all(grandparentLinks);
         const childPersonPayloads = childrenInput.map((row) => this.stripSpouseFromChildInput(row));
@@ -90,8 +123,8 @@ class FamilyService {
         return result;
     }
     splitFamilyParentInput(input) {
-        const { parentId, ...person } = input;
-        return { parentId: parentId ?? null, person };
+        const { parent, ...person } = input;
+        return { parent: parent ?? null, person };
     }
     async createFamilyById(data) {
         const { fatherId, motherId, childrenIds, name, description } = data;

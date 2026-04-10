@@ -1,4 +1,6 @@
 import prisma from "@/shared/database/prisma";
+import type { PaginatedPersons } from "@/features/persons/person.repository";
+import type { Person } from "@/shared/types/person.types";
 import { ParentType, RelationshipType } from "@prisma/client";
 import {
   ChildInput,
@@ -321,6 +323,66 @@ class FamilyTreeRepository {
       created: created as FamilyTreePerson[],
       parents: [father as FamilyTreePerson, mother as FamilyTreePerson],
     };
+  }
+
+  /**
+   * People with no parent-child row as child, no active SPOUSE as either side of the relationship.
+   * Paginated with limit/offset only.
+   */
+  async findChildrenCandidates(limit: number, offset: number): Promise<PaginatedPersons> {
+    const where = {
+      childOf: { none: {} },
+      NOT: {
+        OR: [
+          {
+            relationships: {
+              some: {
+                type: RelationshipType.SPOUSE,
+                relatedPerson: {
+                  childOf: { some: {} },
+                },
+              },
+            },
+          },
+          {
+            relatedRelationships: {
+              some: {
+                type: RelationshipType.SPOUSE,
+                person: {
+                  childOf: { some: {} },
+                },
+              },
+            },
+          },
+        ],
+      },
+
+      // AND: [
+      //   { childOf: { none: {} } },
+      //   {
+      //     relationships: {
+      //       none: { type: RelationshipType.SPOUSE, endDate: null },
+      //     },
+      //   },
+      //   {
+      //     relatedRelationships: {
+      //       none: { type: RelationshipType.SPOUSE, endDate: null },
+      //     },
+      //   },
+      // ],
+    };
+
+    const [data, total] = await prisma.$transaction([
+      prisma.person.findMany({
+        where,
+        orderBy: { name: "asc" },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.person.count({ where }),
+    ]);
+
+    return { data: data as Person[], total };
   }
 
   // Check whether a person has at least one child using a single lightweight query.

@@ -1,3 +1,4 @@
+import type { Person, PersonResponse } from "@/shared/types/person.types";
 import familyTreeRepository from "./family-tree.repository";
 import {
   AddChildrenResponse,
@@ -172,6 +173,29 @@ class FamilyTreeService {
     }
 
     return hasChildren;
+  }
+
+  /** Orphans not in an active marriage — same response shape as GET /api/person/list. */
+  async getChildrenCandidates(
+    limit: number,
+    offset: number
+  ): Promise<{ data: PersonResponse[]; total: number }> {
+    const { data, total } = await familyTreeRepository.findChildrenCandidates(limit, offset);
+    return { data: data.map((p) => this.mapDbPersonToPersonResponse(p)), total };
+  }
+
+  private mapDbPersonToPersonResponse(person: Person): PersonResponse {
+    return {
+      id: person.id,
+      name: person.name,
+      gender: person.gender,
+      birthDate: person.birthDate.toISOString(),
+      deathDate: person.deathDate ? person.deathDate.toISOString() : null,
+      bio: person.bio,
+      profilePictureUrl: person.profilePictureUrl,
+      createdAt: person.createdAt.toISOString(),
+      updatedAt: person.updatedAt.toISOString(),
+    };
   }
 
   private mapMarriedCouplePerson(person: FamilyTreePerson): FamilyTreeRelativeWithSpousesResponse {

@@ -38,10 +38,18 @@ const createMarryParticipantValidation = (participantPath) => [
         .optional()
         .isObject()
         .withMessage(`${participantPath}.newPerson must be an object`),
-    (0, express_validator_1.body)(`${participantPath}.newPerson.parentId`)
+    (0, express_validator_1.body)(`${participantPath}.newPerson.parent`)
         .optional({ nullable: true })
+        .isObject()
+        .withMessage(`${participantPath}.newPerson.parent must be an object`),
+    (0, express_validator_1.body)(`${participantPath}.newPerson.parent.fatherId`)
+        .optional()
         .isUUID()
-        .withMessage(`${participantPath}.newPerson.parentId must be a valid UUID`),
+        .withMessage(`${participantPath}.newPerson.parent.fatherId must be a valid UUID`),
+    (0, express_validator_1.body)(`${participantPath}.newPerson.parent.motherId`)
+        .optional()
+        .isUUID()
+        .withMessage(`${participantPath}.newPerson.parent.motherId must be a valid UUID`),
     (0, express_validator_1.body)(`${participantPath}.newPerson.name`)
         .if((0, express_validator_1.body)(`${participantPath}.newPerson`).exists())
         .exists()

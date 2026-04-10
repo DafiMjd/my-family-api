@@ -42,6 +42,41 @@ class FamilyTreeController {
     }
   }
 
+  // GET /api/family-tree/children-candidate — limit & offset only; same response shape as GET /api/person/list
+  async getChildrenCandidates(req: Request, res: Response): Promise<void> {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        res.status(400).json({
+          success: false,
+          error: "BAD_REQUEST",
+          message: errors.array(),
+        });
+        return;
+      }
+
+      const limit = req.query.limit !== undefined ? Number(req.query.limit) : 10;
+      const offset = req.query.offset !== undefined ? Number(req.query.offset) : 0;
+
+      const { data, total } = await familyTreeService.getChildrenCandidates(limit, offset);
+
+      res.status(200).json({
+        success: true,
+        data,
+        count: data.length,
+        total,
+        limit: limit ?? null,
+        offset,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: "Failed to fetch children candidates",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
   // GET /api/family-tree/children?fatherId=...&motherId=...
   async getChildren(req: Request, res: Response): Promise<void> {
     try {

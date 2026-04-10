@@ -10,10 +10,34 @@ class FamilyTreeRepository {
         const rows = await prisma_1.default.person.findMany({
             where: {
                 childOf: { none: {} },
+                NOT: {
+                    OR: [
+                        {
+                            relationships: {
+                                some: {
+                                    type: client_1.RelationshipType.SPOUSE,
+                                    relatedPerson: {
+                                        childOf: { some: {} },
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            relatedRelationships: {
+                                some: {
+                                    type: client_1.RelationshipType.SPOUSE,
+                                    person: {
+                                        childOf: { some: {} },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
             },
             include: {
                 relationships: {
-                    where: { type: client_1.RelationshipType.SPOUSE, endDate: null },
+                    where: { type: client_1.RelationshipType.SPOUSE },
                     include: {
                         relatedPerson: {
                             include: { _count: { select: { childOf: true } } },
@@ -25,29 +49,74 @@ class FamilyTreeRepository {
         });
         return rows;
     }
-    async findChildrenWithSpouse(personId) {
-        const person = await prisma_1.default.person.findUnique({
-            where: { id: personId },
-            select: {
-                parentsOf: {
-                    include: {
-                        child: {
-                            include: {
-                                relationships: {
-                                    where: { type: client_1.RelationshipType.SPOUSE, endDate: null },
-                                    include: { relatedPerson: true },
-                                },
-                            },
-                        },
-                    },
-                    orderBy: { child: { birthDate: "asc" } },
-                },
+    async findMarriedCouples() {
+        const rows = await prisma_1.default.relationship.findMany({
+            where: { type: client_1.RelationshipType.SPOUSE },
+            include: {
+                person: true,
+                relatedPerson: true,
             },
         });
-        if (!person)
-            return null;
-        const raw = person;
-        return raw.parentsOf.map((row) => ({
+        const couples = [];
+        for (const row of rows) {
+            if (row.personId >= row.relatedPersonId) {
+                continue;
+            }
+            const a = row.person;
+            const b = row.relatedPerson;
+            if (a.gender === "MAN" && b.gender === "WOMAN") {
+                couples.push({ father: a, mother: b });
+            }
+            else if (a.gender === "WOMAN" && b.gender === "MAN") {
+                couples.push({ father: b, mother: a });
+            }
+        }
+        couples.sort((x, y) => {
+            const byFather = x.father.name.localeCompare(y.father.name);
+            if (byFather !== 0) {
+                return byFather;
+            }
+            return x.mother.name.localeCompare(y.mother.name);
+        });
+        return couples;
+    }
+    async areMarriedPair(fatherId, motherId) {
+        const relationship = await prisma_1.default.relationship.findFirst({
+            where: {
+                type: client_1.RelationshipType.SPOUSE,
+                OR: [
+                    { personId: fatherId, relatedPersonId: motherId },
+                    { personId: motherId, relatedPersonId: fatherId },
+                ],
+            },
+        });
+        return Boolean(relationship);
+    }
+    async findChildrenWithSpouseByPair(fatherId, motherId) {
+        const rows = await prisma_1.default.parentChild.findMany({
+            where: {
+                parentId: fatherId,
+                child: {
+                    childOf: {
+                        some: {
+                            parentId: motherId,
+                        },
+                    },
+                },
+            },
+            include: {
+                child: {
+                    include: {
+                        relationships: {
+                            where: { type: client_1.RelationshipType.SPOUSE },
+                            include: { relatedPerson: true },
+                        },
+                    },
+                },
+            },
+            orderBy: { child: { birthDate: "asc" } },
+        });
+        return rows.map((row) => ({
             ...row.child,
             relationshipType: row.type,
             spouses: row.child.relationships.map((relationship) => ({
@@ -57,9 +126,56 @@ class FamilyTreeRepository {
             })),
         }));
     }
-    async findChildren(personId) {
+    async findChildrenByPair(fatherId, motherId) {
         const rows = await prisma_1.default.parentChild.findMany({
-            where: { parentId: personId },
+            where: {
+                parentId: fatherId,
+                child: {
+                    childOf: {
+                        some: {
+                            parentId: motherId,
+                        },
+                    },
+                },
+            },
+            include: {
+                child: true,
+            },
+            orderBy: { child: { birthDate: "asc" } },
+        });
+        return rows.map((row) => ({
+            ...row.child,
+            relationshipType: row.type,
+        }));
+    }
+    async findChildrenWithSpouseByParent(parentId) {
+        const rows = await prisma_1.default.parentChild.findMany({
+            where: { parentId },
+            include: {
+                child: {
+                    include: {
+                        relationships: {
+                            where: { type: client_1.RelationshipType.SPOUSE },
+                            include: { relatedPerson: true },
+                        },
+                    },
+                },
+            },
+            orderBy: { child: { birthDate: "asc" } },
+        });
+        return rows.map((row) => ({
+            ...row.child,
+            relationshipType: row.type,
+            spouses: row.child.relationships.map((relationship) => ({
+                person: relationship.relatedPerson,
+                startDate: relationship.startDate,
+                endDate: relationship.endDate,
+            })),
+        }));
+    }
+    async findChildrenByParent(parentId) {
+        const rows = await prisma_1.default.parentChild.findMany({
+            where: { parentId },
             include: {
                 child: true,
             },
@@ -108,20 +224,13 @@ class FamilyTreeRepository {
         const count = await prisma_1.default.person.count({ where: { id: personId } });
         return count > 0;
     }
-    async addChildren(parentId, children) {
-        const parent = await prisma_1.default.person.findUnique({
-            where: { id: parentId },
-            include: {
-                relationships: {
-                    where: { type: client_1.RelationshipType.SPOUSE, endDate: null },
-                    include: { relatedPerson: true },
-                    take: 1,
-                },
-            },
-        });
-        if (!parent)
+    async addChildren(parent, children) {
+        const [father, mother] = await Promise.all([
+            prisma_1.default.person.findUnique({ where: { id: parent.fatherId } }),
+            prisma_1.default.person.findUnique({ where: { id: parent.motherId } }),
+        ]);
+        if (!father || !mother)
             return null;
-        const spouse = (parent.relationships[0]?.relatedPerson ?? null);
         const created = await prisma_1.default.$transaction(children.map((child) => prisma_1.default.person.create({
             data: {
                 name: child.name,
@@ -133,26 +242,52 @@ class FamilyTreeRepository {
                 childOf: {
                     create: [
                         {
-                            parentId: parent.id,
-                            parentName: parent.name,
+                            parentId: father.id,
+                            parentName: father.name,
                             childName: child.name,
                             type: client_1.ParentType.BIOLOGICAL,
                         },
-                        ...(spouse
-                            ? [
-                                {
-                                    parentId: spouse.id,
-                                    parentName: spouse.name,
-                                    childName: child.name,
-                                    type: client_1.ParentType.BIOLOGICAL,
-                                },
-                            ]
-                            : []),
+                        {
+                            parentId: mother.id,
+                            parentName: mother.name,
+                            childName: child.name,
+                            type: client_1.ParentType.BIOLOGICAL,
+                        },
                     ],
                 },
             },
         })));
-        return { created: created, parent: parent, spouse };
+        return {
+            created: created,
+            parents: [father, mother],
+        };
+    }
+    async findChildrenCandidates(limit, offset) {
+        const where = {
+            AND: [
+                { childOf: { none: {} } },
+                {
+                    relationships: {
+                        none: { type: client_1.RelationshipType.SPOUSE, endDate: null },
+                    },
+                },
+                {
+                    relatedRelationships: {
+                        none: { type: client_1.RelationshipType.SPOUSE, endDate: null },
+                    },
+                },
+            ],
+        };
+        const [data, total] = await prisma_1.default.$transaction([
+            prisma_1.default.person.findMany({
+                where,
+                orderBy: { name: "asc" },
+                take: limit,
+                skip: offset,
+            }),
+            prisma_1.default.person.count({ where }),
+        ]);
+        return { data: data, total };
     }
     async hasChildren(personId) {
         const person = await prisma_1.default.person.findUnique({

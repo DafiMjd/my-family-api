@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const person_repository_1 = __importDefault(require("./person.repository"));
+const person_types_1 = require("../../shared/types/person.types");
 class PersonService {
     async getAllPersons(filters) {
         const { data, total } = await person_repository_1.default.findAll(filters);
@@ -18,17 +19,27 @@ class PersonService {
         return person ? this.mapPersonToResponse(person) : null;
     }
     async createPerson(personData) {
-        const { parentId, ...personFields } = personData;
-        let parent = null;
-        if (parentId) {
-            parent = await person_repository_1.default.findById(parentId);
-            if (!parent) {
-                throw new Error(`Parent person with ID ${parentId} not found`);
-            }
-        }
+        const { parent, ...personFields } = personData;
         const person = await person_repository_1.default.create(personFields);
         if (parent) {
-            await person_repository_1.default.linkBiologicalParentsForDesignatedParent(person.id, person.name, { id: parent.id, name: parent.name });
+            if (!parent.fatherId || !parent.motherId) {
+                throw new Error("parent.fatherId and parent.motherId are required when parent is provided");
+            }
+            const [father, mother] = await Promise.all([
+                person_repository_1.default.findById(parent.fatherId),
+                person_repository_1.default.findById(parent.motherId),
+            ]);
+            if (!father || !mother) {
+                throw new Error("Parent pair not found");
+            }
+            if (father.gender !== person_types_1.Gender.MAN) {
+                throw new Error("parent.fatherId must reference a MAN");
+            }
+            if (mother.gender !== person_types_1.Gender.WOMAN) {
+                throw new Error("parent.motherId must reference a WOMAN");
+            }
+            await person_repository_1.default.upsertBiologicalParentChild(father.id, father.name, person.id, person.name);
+            await person_repository_1.default.upsertBiologicalParentChild(mother.id, mother.name, person.id, person.name);
         }
         return this.mapPersonToResponse(person);
     }

@@ -1,17 +1,28 @@
+import type { PaginatedPersons } from "../persons/person.repository";
 import { ChildInput, FamilyTreePerson, FamilyTreePersonWithRelation, FamilyTreePersonWithRelationAndSpouses, PersonWithClosestRelatives, RootPersonWithSpouses } from "../../shared/types/family-tree.types";
 type AddChildrenResult = {
     created: FamilyTreePerson[];
-    parent: FamilyTreePerson;
-    spouse: FamilyTreePerson | null;
+    parents: [FamilyTreePerson, FamilyTreePerson];
 };
 declare class FamilyTreeRepository {
     findRootsWithSpouse(): Promise<RootPersonWithSpouses[]>;
-    findChildrenWithSpouse(personId: string): Promise<FamilyTreePersonWithRelationAndSpouses[] | null>;
-    findChildren(personId: string): Promise<FamilyTreePersonWithRelation[]>;
+    findMarriedCouples(): Promise<Array<{
+        father: FamilyTreePerson;
+        mother: FamilyTreePerson;
+    }>>;
+    areMarriedPair(fatherId: string, motherId: string): Promise<boolean>;
+    findChildrenWithSpouseByPair(fatherId: string, motherId: string): Promise<FamilyTreePersonWithRelationAndSpouses[]>;
+    findChildrenByPair(fatherId: string, motherId: string): Promise<FamilyTreePersonWithRelation[]>;
+    findChildrenWithSpouseByParent(parentId: string): Promise<FamilyTreePersonWithRelationAndSpouses[]>;
+    findChildrenByParent(parentId: string): Promise<FamilyTreePersonWithRelation[]>;
     findParents(personId: string): Promise<FamilyTreePersonWithRelation[]>;
     findClosestRelatedPeople(personId: string): Promise<PersonWithClosestRelatives>;
     personExists(personId: string): Promise<boolean>;
-    addChildren(parentId: string, children: ChildInput[]): Promise<AddChildrenResult | null>;
+    addChildren(parent: {
+        fatherId: string;
+        motherId: string;
+    }, children: ChildInput[]): Promise<AddChildrenResult | null>;
+    findChildrenCandidates(limit: number, offset: number): Promise<PaginatedPersons>;
     hasChildren(personId: string): Promise<boolean | null>;
 }
 declare const _default: FamilyTreeRepository;

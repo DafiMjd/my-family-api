@@ -70,7 +70,6 @@ export interface FamilyTreeSpouseResponse extends FamilyTreePersonResponse {
 }
 export interface FamilyTreeRootEntryResponse extends FamilyTreePersonResponse {
     spouses: FamilyTreeSpouseResponse[];
-    isMarried: boolean;
 }
 export type FamilyTreeRootsResponse = FamilyTreePersonResponse;
 export interface FamilyTreeRelativeResponse extends FamilyTreePersonResponse {
@@ -81,6 +80,10 @@ export interface FamilyTreeRelativeWithSpouseResponse extends FamilyTreeRelative
 }
 export interface FamilyTreeRelativeWithSpousesResponse extends FamilyTreeRelativeResponse {
     spouses: FamilyTreeSpouseResponse[];
+}
+export interface MarriedCoupleEntryResponse {
+    father: FamilyTreeRelativeWithSpousesResponse;
+    mother: FamilyTreeRelativeWithSpousesResponse;
 }
 export type PersonWithClosestRelatives = {
     relationships: Array<{
@@ -111,7 +114,10 @@ export interface ChildInput {
     profilePictureUrl?: string | null;
 }
 export interface AddChildrenRequest {
-    parentId: string;
+    parent: {
+        fatherId: string;
+        motherId: string;
+    };
     children: ChildInput[];
 }
 export interface AddChildrenResponse {

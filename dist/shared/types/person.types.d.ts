@@ -11,6 +11,10 @@ export type Person = {
     updatedAt: Date;
 };
 export { Gender };
+export interface ParentPairInput {
+    fatherId: string;
+    motherId: string;
+}
 export interface CreatePersonRequestWithSpouse extends CreatePersonRequest {
     spouse?: CreatePersonRequest;
 }
@@ -23,7 +27,7 @@ export interface CreatePersonRequest {
     profilePictureUrl?: string | null;
 }
 export interface CreatePersonApiRequest extends CreatePersonRequest {
-    parentId?: string | null;
+    parent?: ParentPairInput | null;
 }
 export interface UpdatePersonRequest {
     name?: string;
