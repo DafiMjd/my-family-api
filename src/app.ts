@@ -10,7 +10,7 @@ import marriageRoutes from '@/features/marriage/marriage.routes';
 import familyRoutes from '@/features/family/family.routes';
 import familyTreeRoutes from '@/features/family-tree/family-tree.routes';
 import authRoutes from '@/features/auth/auth.routes';
-import adminRoutes from '@/features/admin/admin.routes';
+// import adminRoutes from '@/features/admin/admin.routes';
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +31,7 @@ app.use('/api/marriage', marriageRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/family-tree', familyTreeRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/admin', adminRoutes);
+// app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
