@@ -1,8 +1,7 @@
 import { CreateFamilyRequestById, UpdateFamilyChildrenRequest, UpdateFamilyFatherRequest, UpdateFamilyMotherRequest, DeleteFamilyRequest, GetFamiliesQuery, FamilyResponse, CreateFamilyRequest } from "../../shared/types/family.types";
 declare class FamilyService {
     createFamily(data: CreateFamilyRequest): Promise<FamilyResponse>;
-    private stripSpouseFromChildInput;
-    private createSpousesForChildren;
+    private resolveFamilyChildrenPersons;
     private splitFamilyParentInput;
     createFamilyById(data: CreateFamilyRequestById): Promise<FamilyResponse>;
     private createFamilyWithMembers;

@@ -101,7 +101,25 @@ class FamilyTreeService {
         return parents.map((p) => this.mapToRelativeResponse(p));
     }
     async addChildren(request) {
-        const result = await family_tree_repository_1.default.addChildren(request.parent, request.children);
+        const { parent, children } = request;
+        const existingIds = children
+            .filter((c) => "personId" in c && Boolean(c.personId))
+            .map((c) => c.personId.trim());
+        const seen = new Set();
+        for (const id of existingIds) {
+            if (seen.has(id)) {
+                throw new Error("Duplicate personId in children list");
+            }
+            seen.add(id);
+            if (id === parent.fatherId || id === parent.motherId) {
+                throw new Error("A child cannot be the same person as a parent");
+            }
+            const eligible = await family_tree_repository_1.default.isChildrenCandidate(id);
+            if (!eligible) {
+                throw new Error("Each existing child must have no parents and match GET /api/family-tree/children-candidate rules");
+            }
+        }
+        const result = await family_tree_repository_1.default.addChildren(parent, children);
         if (result === null) {
             throw new Error("One or both parents not found");
         }

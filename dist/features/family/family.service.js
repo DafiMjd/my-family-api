@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const family_repository_1 = __importDefault(require("./family.repository"));
+const family_tree_repository_1 = __importDefault(require("../family-tree/family-tree.repository"));
 const person_repository_1 = __importDefault(require("../persons/person.repository"));
 const client_1 = require("@prisma/client");
 class FamilyService {
@@ -77,50 +78,43 @@ class FamilyService {
             grandparentLinks.push(person_repository_1.default.upsertBiologicalParentChild(motherGrandmother.id, motherGrandmother.name, mother.id, mother.name));
         }
         await Promise.all(grandparentLinks);
-        const childPersonPayloads = childrenInput.map((row) => this.stripSpouseFromChildInput(row));
-        const children = childPersonPayloads.length > 0
-            ? await person_repository_1.default.createMany(childPersonPayloads)
-            : [];
-        const childSpouses = await this.createSpousesForChildren(childrenInput, children);
+        const children = await this.resolveFamilyChildrenPersons(childrenInput, father, mother);
         const familyName = data.name !== undefined && String(data.name).trim() !== ""
             ? String(data.name).trim()
             : `${father.name} & ${mother.name}'s Family`;
         const family = await this.createFamilyWithMembers(father, mother, children, familyName, description ?? null);
-        return this.mapToResponse(family, childSpouses);
+        return this.mapToResponse(family, undefined);
     }
-    stripSpouseFromChildInput(row) {
-        const { spouse: _s, ...person } = row;
-        return person;
-    }
-    async createSpousesForChildren(childrenInput, children) {
-        const result = new Map();
-        if (childrenInput.length !== children.length) {
-            throw new Error("Invalid internal state: children length mismatch");
-        }
-        const pairs = [];
-        for (let i = 0; i < childrenInput.length; i++) {
-            const spouseReq = childrenInput[i].spouse;
-            if (!spouseReq) {
+    async resolveFamilyChildrenPersons(childrenInput, father, mother) {
+        const seenIds = new Set();
+        const children = [];
+        for (const item of childrenInput) {
+            if ("personId" in item && item.personId) {
+                const id = item.personId.trim();
+                if (id === father.id || id === mother.id) {
+                    throw new Error("Child cannot be the same person as a parent");
+                }
+                if (seenIds.has(id)) {
+                    throw new Error("Duplicate child personId in children list");
+                }
+                seenIds.add(id);
+                const existing = await person_repository_1.default.findById(id);
+                if (!existing) {
+                    throw new Error(`Child with ID ${id} not found`);
+                }
+                const eligible = await family_tree_repository_1.default.isChildrenCandidate(id);
+                if (!eligible) {
+                    throw new Error(`Child ${id} is not eligible (must match GET /api/family-tree/children-candidate rules)`);
+                }
+                children.push(existing);
                 continue;
             }
-            const child = children[i];
-            if (spouseReq.gender === child.gender) {
-                throw new Error("Child and spouse must have different genders (MAN and WOMAN)");
+            if ("newPerson" in item && item.newPerson) {
+                const person = await person_repository_1.default.create(item.newPerson);
+                children.push(person);
             }
-            pairs.push({ child, spouseReq });
         }
-        if (pairs.length === 0) {
-            return result;
-        }
-        const spouses = await person_repository_1.default.createMany(pairs.map((p) => p.spouseReq));
-        await Promise.all(pairs.map(({ child }, index) => {
-            const spouse = spouses[index];
-            return family_repository_1.default.createSpouseRelationship(child.id, child.name, spouse.id, spouse.name, new Date());
-        }));
-        for (let i = 0; i < pairs.length; i++) {
-            result.set(pairs[i].child.id, spouses[i]);
-        }
-        return result;
+        return children;
     }
     splitFamilyParentInput(input) {
         const { parent, ...person } = input;

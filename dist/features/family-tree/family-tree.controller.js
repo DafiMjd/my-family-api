@@ -178,10 +178,21 @@ class FamilyTreeController {
             });
         }
         catch (error) {
-            const isNotFound = error instanceof Error && error.message.includes("not found");
-            res.status(isNotFound ? 404 : 500).json({
+            const message = error instanceof Error ? error.message : "";
+            const isNotFound = message.includes("not found") || message.includes("Parents not found");
+            const isBadRequest = message.includes("Duplicate") ||
+                message.includes("cannot") ||
+                message.includes("children-candidate") ||
+                message.includes("Grandparent") ||
+                message.includes("eligible");
+            const status = isBadRequest ? 400 : isNotFound ? 404 : 500;
+            res.status(status).json({
                 success: false,
-                error: isNotFound ? "Parents not found" : "Failed to add children",
+                error: isBadRequest
+                    ? "BAD_REQUEST"
+                    : isNotFound
+                        ? "Parents not found"
+                        : "Failed to add children",
                 message: error instanceof Error ? error.message : "Unknown error",
             });
         }

@@ -1,5 +1,5 @@
 import { Gender, FamilyMemberRole } from "@prisma/client";
-import { CreatePersonRequest, CreatePersonRequestWithSpouse, ParentPairInput } from "./person.types";
+import { CreatePersonRequest, ParentPairInput } from "./person.types";
 export type Family = {
     id: string;
     name: string;
@@ -37,10 +37,16 @@ export interface CreateFamilyRequestById {
 export interface CreateFamilyParentInput extends CreatePersonRequest {
     parent?: ParentPairInput | null;
 }
+export type CreateFamilyChildNewPersonInput = CreatePersonRequest;
+export type CreateFamilyChildInput = {
+    personId: string;
+} | {
+    newPerson: CreateFamilyChildNewPersonInput;
+};
 export interface CreateFamilyRequest {
     father: CreateFamilyParentInput;
     mother: CreateFamilyParentInput;
-    children: CreatePersonRequestWithSpouse[];
+    children: CreateFamilyChildInput[];
     name?: string;
     description?: string | null;
 }

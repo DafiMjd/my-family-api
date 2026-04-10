@@ -1,9 +1,10 @@
 import prisma from "@/shared/database/prisma";
 import type { PaginatedPersons } from "@/features/persons/person.repository";
 import type { Person } from "@/shared/types/person.types";
+import type { Prisma } from "@prisma/client";
 import { ParentType, RelationshipType } from "@prisma/client";
+import type { AddChildItem } from "@/shared/types/family-tree.types";
 import {
-  ChildInput,
   FamilyTreePerson,
   FamilyTreePersonWithRelation,
   FamilyTreePersonWithRelationAndSpouses,
@@ -17,6 +18,44 @@ type AddChildrenResult = {
 };
 
 class FamilyTreeRepository {
+  /** Same filter as GET /api/family-tree/children-candidate (no parents; exclude spouse-of-descendant roots). */
+  private getChildrenCandidateWhere(): Prisma.PersonWhereInput {
+    return {
+      childOf: { none: {} },
+      NOT: {
+        OR: [
+          {
+            relationships: {
+              some: {
+                type: RelationshipType.SPOUSE,
+                relatedPerson: {
+                  childOf: { some: {} },
+                },
+              },
+            },
+          },
+          {
+            relatedRelationships: {
+              some: {
+                type: RelationshipType.SPOUSE,
+                person: {
+                  childOf: { some: {} },
+                },
+              },
+            },
+          },
+        ],
+      },
+    };
+  }
+
+  async isChildrenCandidate(personId: string): Promise<boolean> {
+    const count = await prisma.person.count({
+      where: { id: personId, ...this.getChildrenCandidateWhere() },
+    });
+    return count > 0;
+  }
+
   // Find all first-generation persons with their active spouse (single query).
   // Excludes people who have no parents but are married to someone who does (they appear under that spouse's family line).
   async findRootsWithSpouse(): Promise<RootPersonWithSpouses[]> {
@@ -275,11 +314,11 @@ class FamilyTreeRepository {
     return count > 0;
   }
 
-  // Create new persons as children of the given parent pair.
+  // Link existing children-candidate persons and/or create new children for the parent pair.
   // Returns null when one or both parents do not exist.
   async addChildren(
     parent: { fatherId: string; motherId: string },
-    children: ChildInput[]
+    children: AddChildItem[]
   ): Promise<AddChildrenResult | null> {
     const [father, mother] = await Promise.all([
       prisma.person.findUnique({ where: { id: parent.fatherId } }),
@@ -288,41 +327,86 @@ class FamilyTreeRepository {
 
     if (!father || !mother) return null;
 
-    const created = await prisma.$transaction(
-      children.map((child) =>
-        prisma.person.create({
-          data: {
-            name: child.name,
-            gender: child.gender,
-            birthDate: new Date(child.birthDate),
-            deathDate: child.deathDate ? new Date(child.deathDate) : null,
-            bio: child.bio ?? null,
-            profilePictureUrl: child.profilePictureUrl ?? null,
-            childOf: {
-              create: [
-                {
-                  parentId: father.id,
-                  parentName: father.name,
-                  childName: child.name,
-                  type: ParentType.BIOLOGICAL,
-                },
-                {
-                  parentId: mother.id,
-                  parentName: mother.name,
-                  childName: child.name,
-                  type: ParentType.BIOLOGICAL,
-                },
-              ],
-            },
-          },
-        })
-      )
-    );
+    const result = await prisma.$transaction(async (tx) => {
+      const out: FamilyTreePerson[] = [];
 
-    return {
-      created: created as FamilyTreePerson[],
-      parents: [father as FamilyTreePerson, mother as FamilyTreePerson],
-    };
+      for (const item of children) {
+        if ("personId" in item && item.personId) {
+          const existing = await tx.person.findUnique({ where: { id: item.personId } });
+          if (!existing) {
+            throw new Error(`Child person not found: ${item.personId}`);
+          }
+
+          await tx.parentChild.upsert({
+            where: { parentId_childId: { parentId: father.id, childId: existing.id } },
+            update: { parentName: father.name, childName: existing.name },
+            create: {
+              parentId: father.id,
+              parentName: father.name,
+              childId: existing.id,
+              childName: existing.name,
+              type: ParentType.BIOLOGICAL,
+            },
+          });
+          await tx.parentChild.upsert({
+            where: { parentId_childId: { parentId: mother.id, childId: existing.id } },
+            update: { parentName: mother.name, childName: existing.name },
+            create: {
+              parentId: mother.id,
+              parentName: mother.name,
+              childId: existing.id,
+              childName: existing.name,
+              type: ParentType.BIOLOGICAL,
+            },
+          });
+
+          out.push(existing as FamilyTreePerson);
+          continue;
+        }
+
+        if ("newPerson" in item && item.newPerson) {
+          const np = item.newPerson;
+          const created = await tx.person.create({
+            data: {
+              name: np.name,
+              gender: np.gender,
+              birthDate: new Date(np.birthDate),
+              deathDate: np.deathDate ? new Date(np.deathDate) : null,
+              bio: np.bio ?? null,
+              profilePictureUrl: np.profilePictureUrl ?? null,
+              childOf: {
+                create: [
+                  {
+                    parentId: father.id,
+                    parentName: father.name,
+                    childName: np.name,
+                    type: ParentType.BIOLOGICAL,
+                  },
+                  {
+                    parentId: mother.id,
+                    parentName: mother.name,
+                    childName: np.name,
+                    type: ParentType.BIOLOGICAL,
+                  },
+                ],
+              },
+            },
+          });
+
+          out.push(created as FamilyTreePerson);
+        }
+      }
+
+      return {
+        created: out,
+        parents: [father as FamilyTreePerson, mother as FamilyTreePerson] as [
+          FamilyTreePerson,
+          FamilyTreePerson,
+        ],
+      };
+    });
+
+    return result;
   }
 
   /**
@@ -330,47 +414,7 @@ class FamilyTreeRepository {
    * Paginated with limit/offset only.
    */
   async findChildrenCandidates(limit: number, offset: number): Promise<PaginatedPersons> {
-    const where = {
-      childOf: { none: {} },
-      NOT: {
-        OR: [
-          {
-            relationships: {
-              some: {
-                type: RelationshipType.SPOUSE,
-                relatedPerson: {
-                  childOf: { some: {} },
-                },
-              },
-            },
-          },
-          {
-            relatedRelationships: {
-              some: {
-                type: RelationshipType.SPOUSE,
-                person: {
-                  childOf: { some: {} },
-                },
-              },
-            },
-          },
-        ],
-      },
-
-      // AND: [
-      //   { childOf: { none: {} } },
-      //   {
-      //     relationships: {
-      //       none: { type: RelationshipType.SPOUSE, endDate: null },
-      //     },
-      //   },
-      //   {
-      //     relatedRelationships: {
-      //       none: { type: RelationshipType.SPOUSE, endDate: null },
-      //     },
-      //   },
-      // ],
-    };
+    const where = this.getChildrenCandidateWhere();
 
     const [data, total] = await prisma.$transaction([
       prisma.person.findMany({

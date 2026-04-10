@@ -6,6 +6,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../../shared/database/prisma"));
 const client_1 = require("@prisma/client");
 class FamilyTreeRepository {
+    getChildrenCandidateWhere() {
+        return {
+            childOf: { none: {} },
+            NOT: {
+                OR: [
+                    {
+                        relationships: {
+                            some: {
+                                type: client_1.RelationshipType.SPOUSE,
+                                relatedPerson: {
+                                    childOf: { some: {} },
+                                },
+                            },
+                        },
+                    },
+                    {
+                        relatedRelationships: {
+                            some: {
+                                type: client_1.RelationshipType.SPOUSE,
+                                person: {
+                                    childOf: { some: {} },
+                                },
+                            },
+                        },
+                    },
+                ],
+            },
+        };
+    }
+    async isChildrenCandidate(personId) {
+        const count = await prisma_1.default.person.count({
+            where: { id: personId, ...this.getChildrenCandidateWhere() },
+        });
+        return count > 0;
+    }
     async findRootsWithSpouse() {
         const rows = await prisma_1.default.person.findMany({
             where: {
@@ -231,53 +266,79 @@ class FamilyTreeRepository {
         ]);
         if (!father || !mother)
             return null;
-        const created = await prisma_1.default.$transaction(children.map((child) => prisma_1.default.person.create({
-            data: {
-                name: child.name,
-                gender: child.gender,
-                birthDate: new Date(child.birthDate),
-                deathDate: child.deathDate ? new Date(child.deathDate) : null,
-                bio: child.bio ?? null,
-                profilePictureUrl: child.profilePictureUrl ?? null,
-                childOf: {
-                    create: [
-                        {
+        const result = await prisma_1.default.$transaction(async (tx) => {
+            const out = [];
+            for (const item of children) {
+                if ("personId" in item && item.personId) {
+                    const existing = await tx.person.findUnique({ where: { id: item.personId } });
+                    if (!existing) {
+                        throw new Error(`Child person not found: ${item.personId}`);
+                    }
+                    await tx.parentChild.upsert({
+                        where: { parentId_childId: { parentId: father.id, childId: existing.id } },
+                        update: { parentName: father.name, childName: existing.name },
+                        create: {
                             parentId: father.id,
                             parentName: father.name,
-                            childName: child.name,
+                            childId: existing.id,
+                            childName: existing.name,
                             type: client_1.ParentType.BIOLOGICAL,
                         },
-                        {
+                    });
+                    await tx.parentChild.upsert({
+                        where: { parentId_childId: { parentId: mother.id, childId: existing.id } },
+                        update: { parentName: mother.name, childName: existing.name },
+                        create: {
                             parentId: mother.id,
                             parentName: mother.name,
-                            childName: child.name,
+                            childId: existing.id,
+                            childName: existing.name,
                             type: client_1.ParentType.BIOLOGICAL,
                         },
-                    ],
-                },
-            },
-        })));
-        return {
-            created: created,
-            parents: [father, mother],
-        };
+                    });
+                    out.push(existing);
+                    continue;
+                }
+                if ("newPerson" in item && item.newPerson) {
+                    const np = item.newPerson;
+                    const created = await tx.person.create({
+                        data: {
+                            name: np.name,
+                            gender: np.gender,
+                            birthDate: new Date(np.birthDate),
+                            deathDate: np.deathDate ? new Date(np.deathDate) : null,
+                            bio: np.bio ?? null,
+                            profilePictureUrl: np.profilePictureUrl ?? null,
+                            childOf: {
+                                create: [
+                                    {
+                                        parentId: father.id,
+                                        parentName: father.name,
+                                        childName: np.name,
+                                        type: client_1.ParentType.BIOLOGICAL,
+                                    },
+                                    {
+                                        parentId: mother.id,
+                                        parentName: mother.name,
+                                        childName: np.name,
+                                        type: client_1.ParentType.BIOLOGICAL,
+                                    },
+                                ],
+                            },
+                        },
+                    });
+                    out.push(created);
+                }
+            }
+            return {
+                created: out,
+                parents: [father, mother],
+            };
+        });
+        return result;
     }
     async findChildrenCandidates(limit, offset) {
-        const where = {
-            AND: [
-                { childOf: { none: {} } },
-                {
-                    relationships: {
-                        none: { type: client_1.RelationshipType.SPOUSE, endDate: null },
-                    },
-                },
-                {
-                    relatedRelationships: {
-                        none: { type: client_1.RelationshipType.SPOUSE, endDate: null },
-                    },
-                },
-            ],
-        };
+        const where = this.getChildrenCandidateWhere();
         const [data, total] = await prisma_1.default.$transaction([
             prisma_1.default.person.findMany({
                 where,

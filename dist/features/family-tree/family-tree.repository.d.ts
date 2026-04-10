@@ -1,10 +1,13 @@
 import type { PaginatedPersons } from "../persons/person.repository";
-import { ChildInput, FamilyTreePerson, FamilyTreePersonWithRelation, FamilyTreePersonWithRelationAndSpouses, PersonWithClosestRelatives, RootPersonWithSpouses } from "../../shared/types/family-tree.types";
+import type { AddChildItem } from "../../shared/types/family-tree.types";
+import { FamilyTreePerson, FamilyTreePersonWithRelation, FamilyTreePersonWithRelationAndSpouses, PersonWithClosestRelatives, RootPersonWithSpouses } from "../../shared/types/family-tree.types";
 type AddChildrenResult = {
     created: FamilyTreePerson[];
     parents: [FamilyTreePerson, FamilyTreePerson];
 };
 declare class FamilyTreeRepository {
+    private getChildrenCandidateWhere;
+    isChildrenCandidate(personId: string): Promise<boolean>;
     findRootsWithSpouse(): Promise<RootPersonWithSpouses[]>;
     findMarriedCouples(): Promise<Array<{
         father: FamilyTreePerson;
@@ -21,7 +24,7 @@ declare class FamilyTreeRepository {
     addChildren(parent: {
         fatherId: string;
         motherId: string;
-    }, children: ChildInput[]): Promise<AddChildrenResult | null>;
+    }, children: AddChildItem[]): Promise<AddChildrenResult | null>;
     findChildrenCandidates(limit: number, offset: number): Promise<PaginatedPersons>;
     hasChildren(personId: string): Promise<boolean | null>;
 }

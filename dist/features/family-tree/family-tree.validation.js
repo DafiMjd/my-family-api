@@ -2,6 +2,74 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.addChildrenValidation = exports.withSpouseQueryValidation = exports.personIdParamValidation = void 0;
 const express_validator_1 = require("express-validator");
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function isUuid(value) {
+    return UUID_RE.test(value.trim());
+}
+function assertAddChildrenItems(children) {
+    if (!Array.isArray(children) || children.length === 0) {
+        throw new Error("children must be a non-empty array");
+    }
+    for (let i = 0; i < children.length; i++) {
+        const item = children[i];
+        const prefix = `children[${i}]`;
+        if (!item || typeof item !== "object") {
+            throw new Error(`${prefix} must be an object`);
+        }
+        const row = item;
+        const pid = row.personId;
+        const np = row.newPerson;
+        const hasPid = typeof pid === "string" && pid.trim().length > 0;
+        const hasNp = np != null && typeof np === "object";
+        if (hasPid && hasNp) {
+            throw new Error(`${prefix}: use only one of personId or newPerson`);
+        }
+        if (!hasPid && !hasNp) {
+            throw new Error(`${prefix}: personId or newPerson is required`);
+        }
+        if (hasPid) {
+            if (!isUuid(pid)) {
+                throw new Error(`${prefix}.personId must be a valid UUID`);
+            }
+            continue;
+        }
+        const child = np;
+        if (typeof child.name !== "string" || !child.name.trim()) {
+            throw new Error(`${prefix}.newPerson.name is required`);
+        }
+        if (child.gender !== "MAN" && child.gender !== "WOMAN") {
+            throw new Error(`${prefix}.newPerson.gender must be MAN or WOMAN`);
+        }
+        if (typeof child.birthDate !== "string" || !child.birthDate.trim()) {
+            throw new Error(`${prefix}.newPerson.birthDate is required`);
+        }
+        if (Number.isNaN(Date.parse(child.birthDate))) {
+            throw new Error(`${prefix}.newPerson.birthDate must be a valid date`);
+        }
+        if (child.deathDate != null && child.deathDate !== "") {
+            if (typeof child.deathDate !== "string" || Number.isNaN(Date.parse(child.deathDate))) {
+                throw new Error(`${prefix}.newPerson.deathDate must be a valid date`);
+            }
+        }
+        if (child.bio != null && typeof child.bio !== "string") {
+            throw new Error(`${prefix}.newPerson.bio must be a string`);
+        }
+        if (child.profilePictureUrl != null && child.profilePictureUrl !== "") {
+            if (typeof child.profilePictureUrl !== "string") {
+                throw new Error(`${prefix}.newPerson.profilePictureUrl must be a string`);
+            }
+            try {
+                new URL(child.profilePictureUrl);
+            }
+            catch {
+                throw new Error(`${prefix}.newPerson.profilePictureUrl must be a valid URL`);
+            }
+        }
+        if (child.parent != null) {
+            throw new Error(`${prefix}.newPerson must not include parent; child's parents are request body parent.fatherId and parent.motherId`);
+        }
+    }
+}
 exports.personIdParamValidation = [
     (0, express_validator_1.param)("personId")
         .exists()
@@ -56,32 +124,9 @@ exports.addChildrenValidation = [
         .withMessage("children is required")
         .isArray({ min: 1 })
         .withMessage("children must be a non-empty array"),
-    (0, express_validator_1.body)("children.*.name")
-        .exists()
-        .withMessage("child name is required")
-        .isString()
-        .withMessage("child name must be a string"),
-    (0, express_validator_1.body)("children.*.gender")
-        .exists()
-        .withMessage("child gender is required")
-        .isIn(["MAN", "WOMAN"])
-        .withMessage("child gender must be MAN or WOMAN"),
-    (0, express_validator_1.body)("children.*.birthDate")
-        .exists()
-        .withMessage("child birthDate is required")
-        .isDate()
-        .withMessage("child birthDate must be a valid date (YYYY-MM-DD)"),
-    (0, express_validator_1.body)("children.*.deathDate")
-        .optional()
-        .isDate()
-        .withMessage("child deathDate must be a valid date (YYYY-MM-DD)"),
-    (0, express_validator_1.body)("children.*.bio")
-        .optional()
-        .isString()
-        .withMessage("child bio must be a string"),
-    (0, express_validator_1.body)("children.*.profilePictureUrl")
-        .optional()
-        .isURL()
-        .withMessage("child profilePictureUrl must be a valid URL"),
+    (0, express_validator_1.body)("children").custom((value) => {
+        assertAddChildrenItems(value);
+        return true;
+    }),
 ];
 //# sourceMappingURL=family-tree.validation.js.map

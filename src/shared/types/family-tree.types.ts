@@ -119,7 +119,8 @@ export interface FamilyTreeClosestRelatedPeopleResponse {
   parents: FamilyTreeRelativeResponse[];
 }
 
-export interface ChildInput {
+/** New child payload inside POST /api/family-tree/add-children. Parents come from `parent` on the request body. */
+export interface AddChildNewPersonInput {
   name: string;
   gender: Gender;
   birthDate: string;
@@ -128,12 +129,15 @@ export interface ChildInput {
   profilePictureUrl?: string | null;
 }
 
+/** Either link an existing person (must satisfy children-candidate rules) or create a new one. */
+export type AddChildItem = { personId: string } | { newPerson: AddChildNewPersonInput };
+
 export interface AddChildrenRequest {
   parent: {
     fatherId: string;
     motherId: string;
   };
-  children: ChildInput[];
+  children: AddChildItem[];
 }
 
 export interface AddChildrenResponse {

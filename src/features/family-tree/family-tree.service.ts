@@ -2,7 +2,6 @@ import type { Person, PersonResponse } from "@/shared/types/person.types";
 import familyTreeRepository from "./family-tree.repository";
 import {
   AddChildrenResponse,
-  ChildInput,
   FamilyTreeRootEntryResponse,
   FamilyTreeRelativeResponse,
   FamilyTreeRelativeWithSpousesResponse,
@@ -145,7 +144,29 @@ class FamilyTreeService {
   }
 
   async addChildren(request: AddChildrenRequest): Promise<AddChildrenResponse> {
-    const result = await familyTreeRepository.addChildren(request.parent, request.children);
+    const { parent, children } = request;
+    const existingIds = children
+      .filter((c): c is { personId: string } => "personId" in c && Boolean(c.personId))
+      .map((c) => c.personId.trim());
+
+    const seen = new Set<string>();
+    for (const id of existingIds) {
+      if (seen.has(id)) {
+        throw new Error("Duplicate personId in children list");
+      }
+      seen.add(id);
+      if (id === parent.fatherId || id === parent.motherId) {
+        throw new Error("A child cannot be the same person as a parent");
+      }
+      const eligible = await familyTreeRepository.isChildrenCandidate(id);
+      if (!eligible) {
+        throw new Error(
+          "Each existing child must have no parents and match GET /api/family-tree/children-candidate rules"
+        );
+      }
+    }
+
+    const result = await familyTreeRepository.addChildren(parent, children);
     if (result === null) {
       throw new Error("One or both parents not found");
     }

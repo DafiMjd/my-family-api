@@ -1,5 +1,5 @@
 import { Gender, FamilyMemberRole } from "@prisma/client";
-import { CreatePersonRequest, CreatePersonRequestWithSpouse, ParentPairInput } from "./person.types";
+import { CreatePersonRequest, ParentPairInput } from "./person.types";
 
 // Database model types
 export type Family = {
@@ -55,10 +55,18 @@ export interface CreateFamilyParentInput extends CreatePersonRequest {
  * POST /api/family/one — create family with new persons only.
  * Default name: `${father.name} & ${mother.name}'s Family` when name is empty or omitted.
  */
+/** New child on POST /api/family/one: person fields only; parents are `father` / `mother` in the body. */
+export type CreateFamilyChildNewPersonInput = CreatePersonRequest;
+
+/** Existing person (children-candidate) or new person row. */
+export type CreateFamilyChildInput =
+  | { personId: string }
+  | { newPerson: CreateFamilyChildNewPersonInput };
+
 export interface CreateFamilyRequest {
   father: CreateFamilyParentInput;
   mother: CreateFamilyParentInput;
-  children: CreatePersonRequestWithSpouse[];
+  children: CreateFamilyChildInput[];
   name?: string;
   description?: string | null;
 }
@@ -118,7 +126,7 @@ export interface FamilyResponse {
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
-    /** Present when a spouse was created with this child on POST /api/family/one; otherwise null. */
+    /** Reserved for future use; always null when creating via POST /api/family/one. */
     spouse: {
       id: string;
       name: string;

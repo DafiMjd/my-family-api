@@ -1,8 +1,10 @@
 import familyRepository from "./family.repository";
+import familyTreeRepository from "@/features/family-tree/family-tree.repository";
 import personRepository from "@/features/persons/person.repository";
 import {
   CreateFamilyRequestById,
   CreateFamilyParentInput,
+  CreateFamilyChildInput,
   UpdateFamilyChildrenRequest,
   UpdateFamilyFatherRequest,
   UpdateFamilyMotherRequest,
@@ -12,10 +14,7 @@ import {
   FamilyWithMembers,
   CreateFamilyRequest,
 } from "@/shared/types/family.types";
-import {
-  CreatePersonRequest,
-  CreatePersonRequestWithSpouse,
-} from "@/shared/types/person.types";
+import { CreatePersonRequest } from "@/shared/types/person.types";
 import { Gender, FamilyMemberRole, Person } from "@prisma/client";
 
 class FamilyService {
@@ -134,17 +133,10 @@ class FamilyService {
     }
     await Promise.all(grandparentLinks);
 
-    const childPersonPayloads = childrenInput.map((row) =>
-      this.stripSpouseFromChildInput(row)
-    );
-    const children =
-      childPersonPayloads.length > 0
-        ? await personRepository.createMany(childPersonPayloads)
-        : [];
-
-    const childSpouses = await this.createSpousesForChildren(
+    const children = await this.resolveFamilyChildrenPersons(
       childrenInput,
-      children
+      father,
+      mother
     );
 
     const familyName =
@@ -160,72 +152,54 @@ class FamilyService {
       description ?? null
     );
 
-    return this.mapToResponse(family, childSpouses);
-  }
-
-  /** Removes `spouse` so Prisma create does not receive an unknown field. */
-  private stripSpouseFromChildInput(
-    row: CreatePersonRequestWithSpouse
-  ): CreatePersonRequest {
-    const { spouse: _s, ...person } = row;
-    return person;
+    return this.mapToResponse(family, undefined);
   }
 
   /**
-   * Creates spouse persons (batch) and SPOUSE links for children that include `spouse`.
-   * Returns a map of childId → spouse Person for the API response.
+   * Builds the ordered child Person list: existing candidates or newly created persons.
    */
-  private async createSpousesForChildren(
-    childrenInput: CreatePersonRequestWithSpouse[],
-    children: Person[]
-  ): Promise<Map<string, Person>> {
-    const result = new Map<string, Person>();
-    if (childrenInput.length !== children.length) {
-      throw new Error("Invalid internal state: children length mismatch");
-    }
+  private async resolveFamilyChildrenPersons(
+    childrenInput: CreateFamilyChildInput[],
+    father: Person,
+    mother: Person
+  ): Promise<Person[]> {
+    const seenIds = new Set<string>();
+    const children: Person[] = [];
 
-    type Pair = { child: Person; spouseReq: CreatePersonRequest };
-    const pairs: Pair[] = [];
-    for (let i = 0; i < childrenInput.length; i++) {
-      const spouseReq = childrenInput[i].spouse;
-      if (!spouseReq) {
+    for (const item of childrenInput) {
+      if ("personId" in item && item.personId) {
+        const id = item.personId.trim();
+        if (id === father.id || id === mother.id) {
+          throw new Error("Child cannot be the same person as a parent");
+        }
+        if (seenIds.has(id)) {
+          throw new Error("Duplicate child personId in children list");
+        }
+        seenIds.add(id);
+
+        const existing = await personRepository.findById(id);
+        if (!existing) {
+          throw new Error(`Child with ID ${id} not found`);
+        }
+
+        const eligible = await familyTreeRepository.isChildrenCandidate(id);
+        if (!eligible) {
+          throw new Error(
+            `Child ${id} is not eligible (must match GET /api/family-tree/children-candidate rules)`
+          );
+        }
+
+        children.push(existing);
         continue;
       }
-      const child = children[i];
-      if (spouseReq.gender === child.gender) {
-        throw new Error(
-          "Child and spouse must have different genders (MAN and WOMAN)"
-        );
+
+      if ("newPerson" in item && item.newPerson) {
+        const person = await personRepository.create(item.newPerson as CreatePersonRequest);
+        children.push(person);
       }
-      pairs.push({ child, spouseReq });
     }
 
-    if (pairs.length === 0) {
-      return result;
-    }
-
-    const spouses = await personRepository.createMany(
-      pairs.map((p) => p.spouseReq)
-    );
-
-    await Promise.all(
-      pairs.map(({ child }, index) => {
-        const spouse = spouses[index];
-        return familyRepository.createSpouseRelationship(
-          child.id,
-          child.name,
-          spouse.id,
-          spouse.name,
-          new Date()
-        );
-      })
-    );
-
-    for (let i = 0; i < pairs.length; i++) {
-      result.set(pairs[i].child.id, spouses[i]);
-    }
-
-    return result;
+    return children;
   }
 
   private splitFamilyParentInput(input: CreateFamilyParentInput): {

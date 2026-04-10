@@ -105,7 +105,7 @@ export interface FamilyTreeClosestRelatedPeopleResponse {
     children: FamilyTreeRelativeResponse[];
     parents: FamilyTreeRelativeResponse[];
 }
-export interface ChildInput {
+export interface AddChildNewPersonInput {
     name: string;
     gender: Gender;
     birthDate: string;
@@ -113,12 +113,17 @@ export interface ChildInput {
     bio?: string | null;
     profilePictureUrl?: string | null;
 }
+export type AddChildItem = {
+    personId: string;
+} | {
+    newPerson: AddChildNewPersonInput;
+};
 export interface AddChildrenRequest {
     parent: {
         fatherId: string;
         motherId: string;
     };
-    children: ChildInput[];
+    children: AddChildItem[];
 }
 export interface AddChildrenResponse {
     children: FamilyTreePersonResponse[];
