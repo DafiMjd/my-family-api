@@ -192,6 +192,15 @@ class PersonController {
     }
     async deletePerson(req, res) {
         try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: "BAD_REQUEST",
+                    message: errors.array(),
+                });
+                return;
+            }
             const { id } = req.query;
             if (!id || typeof id !== "string") {
                 res.status(400).json({
@@ -201,7 +210,12 @@ class PersonController {
                 });
                 return;
             }
-            const deleted = await person_service_1.default.deletePerson(id);
+            const deleteSpouse = req.query.deleteSpouse === "true";
+            const deleteChildren = req.query.deleteChildren === "true";
+            const deleted = await person_service_1.default.deletePerson(id, {
+                deleteSpouse,
+                deleteChildren,
+            });
             if (!deleted) {
                 res.status(404).json({
                     success: false,

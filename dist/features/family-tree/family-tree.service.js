@@ -71,6 +71,25 @@ class FamilyTreeService {
         const parents = await family_tree_repository_1.default.findParents(personId);
         return parents.map((p) => this.mapToRelativeResponse(p));
     }
+    async addChildren(parentId, children) {
+        const result = await family_tree_repository_1.default.addChildren(parentId, children);
+        if (result === null) {
+            throw new Error(`Person with ID '${parentId}' not found`);
+        }
+        const { created, parent, spouse } = result;
+        const connectedParents = spouse ? [parent, spouse] : [parent];
+        return {
+            children: created.map((c) => this.mapToPersonResponse(c)),
+            connectedParents: connectedParents.map((p) => this.mapToPersonResponse(p)),
+        };
+    }
+    async hasChildren(personId) {
+        const hasChildren = await family_tree_repository_1.default.hasChildren(personId);
+        if (hasChildren === null) {
+            throw new Error(`Person with ID '${personId}' not found`);
+        }
+        return hasChildren;
+    }
     mapToPersonResponse(person) {
         return {
             id: person.id,

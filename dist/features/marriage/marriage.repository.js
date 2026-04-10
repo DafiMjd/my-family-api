@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const prisma_1 = __importDefault(require("@/shared/database/prisma"));
+const prisma_1 = __importDefault(require("../../shared/database/prisma"));
 class MarriageRepository {
     async createMarriage(personId1, personName1, personId2, personName2, startDate) {
         const relationships = await prisma_1.default.$transaction([

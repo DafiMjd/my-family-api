@@ -1,5 +1,5 @@
-import { PersonFilters, PaginationQuery } from "./person.repository";
-import { CreatePersonApiRequest, UpdatePersonRequest, PersonResponse } from "@/shared/types/person.types";
+import { DeletePersonOptions, PersonFilters, PaginationQuery } from "./person.repository";
+import { CreatePersonApiRequest, UpdatePersonRequest, PersonResponse } from "../../shared/types/person.types";
 export interface PaginatedPersonsResponse {
     data: PersonResponse[];
     total: number;
@@ -10,7 +10,7 @@ declare class PersonService {
     getPersonById(id: string): Promise<PersonResponse | null>;
     createPerson(personData: CreatePersonApiRequest): Promise<PersonResponse>;
     updatePerson(id: string, personData: UpdatePersonRequest): Promise<PersonResponse | null>;
-    deletePerson(id: string): Promise<boolean>;
+    deletePerson(id: string, options?: DeletePersonOptions): Promise<boolean>;
     getPersonsByGender(gender: string): Promise<PersonResponse[]>;
     getLivingPersons(): Promise<PersonResponse[]>;
     getDeceasedPersons(): Promise<PersonResponse[]>;

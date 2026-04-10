@@ -4,6 +4,8 @@ declare class FamilyTreeController {
     getChildren(req: Request, res: Response): Promise<void>;
     getClosestRelatedPeople(req: Request, res: Response): Promise<void>;
     getParents(req: Request, res: Response): Promise<void>;
+    addChildren(req: Request, res: Response): Promise<void>;
+    hasChildren(req: Request, res: Response): Promise<void>;
 }
 declare const _default: FamilyTreeController;
 export default _default;

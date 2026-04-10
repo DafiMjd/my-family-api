@@ -107,6 +107,63 @@ class FamilyTreeController {
             });
         }
     }
+    async addChildren(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: "BAD_REQUEST",
+                    message: errors.array(),
+                });
+                return;
+            }
+            const { parentId, children } = req.body;
+            const result = await family_tree_service_1.default.addChildren(parentId, children);
+            res.status(201).json({
+                success: true,
+                data: result,
+                count: result.children.length,
+            });
+        }
+        catch (error) {
+            const isNotFound = error instanceof Error && error.message.includes("not found");
+            res.status(isNotFound ? 404 : 500).json({
+                success: false,
+                error: isNotFound ? "Parent not found" : "Failed to add children",
+                message: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
+    async hasChildren(req, res) {
+        try {
+            const errors = (0, express_validator_1.validationResult)(req);
+            if (!errors.isEmpty()) {
+                res.status(400).json({
+                    success: false,
+                    error: "BAD_REQUEST",
+                    message: errors.array(),
+                });
+                return;
+            }
+            const { personId } = req.params;
+            const hasChildren = await family_tree_service_1.default.hasChildren(personId);
+            res.status(200).json({
+                success: true,
+                data: {
+                    hasChildren,
+                },
+            });
+        }
+        catch (error) {
+            const isNotFound = error instanceof Error && error.message.includes("not found");
+            res.status(isNotFound ? 404 : 500).json({
+                success: false,
+                error: isNotFound ? "Person not found" : "Failed to check children",
+                message: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
 }
 exports.default = new FamilyTreeController();
 //# sourceMappingURL=family-tree.controller.js.map

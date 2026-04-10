@@ -77,5 +77,21 @@ export interface FamilyTreeClosestRelatedPeopleResponse {
     children: FamilyTreeRelativeResponse[];
     parents: FamilyTreeRelativeResponse[];
 }
+export interface ChildInput {
+    name: string;
+    gender: Gender;
+    birthDate: string;
+    deathDate?: string | null;
+    bio?: string | null;
+    profilePictureUrl?: string | null;
+}
+export interface AddChildrenRequest {
+    parentId: string;
+    children: ChildInput[];
+}
+export interface AddChildrenResponse {
+    children: FamilyTreePersonResponse[];
+    connectedParents: FamilyTreePersonResponse[];
+}
 export { ParentType, Gender };
 //# sourceMappingURL=family-tree.types.d.ts.map

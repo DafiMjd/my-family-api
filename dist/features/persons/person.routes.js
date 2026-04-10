@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const require_access_jwt_middleware_1 = require("@/shared/middleware/require-access-jwt.middleware");
+const require_access_jwt_middleware_1 = require("../../shared/middleware/require-access-jwt.middleware");
 const person_controller_1 = __importDefault(require("./person.controller"));
 const person_validation_1 = require("./person.validation");
 const router = (0, express_1.Router)();
@@ -16,6 +16,6 @@ router.get("/latest/list", person_validation_1.latestPersonsQueryValidation, per
 router.get("/one", person_controller_1.default.getPersonById.bind(person_controller_1.default));
 router.post("/one", require_access_jwt_middleware_1.requireAccessJwt, person_validation_1.createPersonValidation, person_controller_1.default.createPerson.bind(person_controller_1.default));
 router.put("/one", require_access_jwt_middleware_1.requireAccessJwt, person_validation_1.updatePersonValidation, person_controller_1.default.updatePerson.bind(person_controller_1.default));
-router.delete("/one", require_access_jwt_middleware_1.requireAccessJwt, person_controller_1.default.deletePerson.bind(person_controller_1.default));
+router.delete("/one", require_access_jwt_middleware_1.requireAccessJwt, person_validation_1.deletePersonQueryValidation, person_controller_1.default.deletePerson.bind(person_controller_1.default));
 exports.default = router;
 //# sourceMappingURL=person.routes.js.map

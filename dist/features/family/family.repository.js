@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const prisma_1 = __importDefault(require("@/shared/database/prisma"));
+const prisma_1 = __importDefault(require("../../shared/database/prisma"));
 class FamilyRepository {
     async findById(familyId) {
         return await prisma_1.default.family.findUnique({

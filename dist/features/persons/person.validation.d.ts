@@ -5,5 +5,6 @@ export declare const buildCreatePersonValidationIfParentExists: (fieldPrefix: st
 export declare const buildCreateFamilyParentValidation: (prefix: string) => ValidationChain[];
 export declare const listPersonsQueryValidation: ValidationChain[];
 export declare const latestPersonsQueryValidation: ValidationChain[];
+export declare const deletePersonQueryValidation: ValidationChain[];
 export declare const updatePersonValidation: ValidationChain[];
 //# sourceMappingURL=person.validation.d.ts.map

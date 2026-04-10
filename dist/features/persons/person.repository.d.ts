@@ -1,4 +1,4 @@
-import { Person, CreatePersonRequest, UpdatePersonRequest } from "@/shared/types/person.types";
+import { Person, CreatePersonRequest, UpdatePersonRequest } from "../../shared/types/person.types";
 export interface PersonFilters {
     name?: string;
     gender?: string;
@@ -14,6 +14,10 @@ export interface PaginationQuery {
     limit?: number;
     offset?: number;
 }
+export interface DeletePersonOptions {
+    deleteSpouse?: boolean;
+    deleteChildren?: boolean;
+}
 declare class PersonRepository {
     findAll(filters?: PersonFilters): Promise<PaginatedPersons>;
     findLatestCreated(pagination?: PaginationQuery): Promise<PaginatedPersons>;
@@ -27,7 +31,7 @@ declare class PersonRepository {
     }): Promise<void>;
     createMany(datas: CreatePersonRequest[]): Promise<Person[]>;
     update(id: string, personData: UpdatePersonRequest): Promise<Person | null>;
-    delete(id: string): Promise<boolean>;
+    delete(id: string, options?: DeletePersonOptions): Promise<boolean>;
     count(): Promise<number>;
     findByGender(gender: string): Promise<Person[]>;
     findLiving(): Promise<Person[]>;

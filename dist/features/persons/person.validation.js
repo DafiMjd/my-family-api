@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePersonValidation = exports.latestPersonsQueryValidation = exports.listPersonsQueryValidation = exports.buildCreateFamilyParentValidation = exports.buildCreatePersonValidationIfParentExists = exports.buildCreatePersonValidation = exports.createPersonValidation = void 0;
+exports.updatePersonValidation = exports.deletePersonQueryValidation = exports.latestPersonsQueryValidation = exports.listPersonsQueryValidation = exports.buildCreateFamilyParentValidation = exports.buildCreatePersonValidationIfParentExists = exports.buildCreatePersonValidation = exports.createPersonValidation = void 0;
 const express_validator_1 = require("express-validator");
 const genderEnumValidation = (0, express_validator_1.body)("gender", "gender must be MAN or WOMAN").isIn(["MAN", "WOMAN"]);
 const profilePictureUrlValidation = (0, express_validator_1.body)("profilePictureUrl", "profilePictureUrl must be a valid URL")
@@ -95,12 +95,25 @@ exports.latestPersonsQueryValidation = [
     (0, express_validator_1.query)("limit").optional().isInt({ min: 1 }).withMessage("limit must be a positive integer").toInt(),
     (0, express_validator_1.query)("offset").optional().isInt({ min: 0 }).withMessage("offset must be a non-negative integer").toInt(),
 ];
+exports.deletePersonQueryValidation = [
+    (0, express_validator_1.query)("id", "id is required").exists().isUUID().withMessage("id must be a valid UUID"),
+    (0, express_validator_1.query)("deleteSpouse")
+        .optional()
+        .isBoolean()
+        .withMessage("deleteSpouse must be a boolean"),
+    (0, express_validator_1.query)("deleteChildren")
+        .optional()
+        .isBoolean()
+        .withMessage("deleteChildren must be a boolean"),
+];
 exports.updatePersonValidation = [
     (0, express_validator_1.body)("name", "name is required").optional(),
     (0, express_validator_1.body)("gender", "gender is required").optional(),
     genderEnumValidation,
     (0, express_validator_1.body)("birthDate", "birthDate must be a valid date").optional().isDate(),
-    (0, express_validator_1.body)("deathDate", "deathDate must be a valid date").optional().isDate(),
+    (0, express_validator_1.body)("deathDate", "deathDate must be a valid date")
+        .optional({ nullable: true })
+        .isDate(),
     profilePictureUrlValidation,
 ];
 //# sourceMappingURL=person.validation.js.map

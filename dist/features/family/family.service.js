@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const family_repository_1 = __importDefault(require("./family.repository"));
-const person_repository_1 = __importDefault(require("@/features/persons/person.repository"));
+const person_repository_1 = __importDefault(require("../persons/person.repository"));
 const client_1 = require("@prisma/client");
 class FamilyService {
     async createFamily(data) {

@@ -1,5 +1,5 @@
 import { Relationship, FamilyMemberRole, ParentType } from "@prisma/client";
-import { FamilyWithMembers, GetFamiliesQuery } from "@/shared/types/family.types";
+import { FamilyWithMembers, GetFamiliesQuery } from "../../shared/types/family.types";
 export interface PaginatedFamilies {
     data: FamilyWithMembers[];
     total: number;

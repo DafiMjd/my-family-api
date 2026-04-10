@@ -1,4 +1,4 @@
-import { MarriageRequest, MarriageCreateRequest, DivorceRequest, CancelMarriageRequest, CancelDivorceRequest, MarriageOperationResponse, MarriageListResponse, SinglePersonsResponse } from "@/shared/types/marriage.types";
+import { MarriageRequest, MarriageCreateRequest, DivorceRequest, CancelMarriageRequest, CancelDivorceRequest, MarriageOperationResponse, MarriageListResponse, SinglePersonsResponse } from "../../shared/types/marriage.types";
 declare class MarriageService {
     marry(marriageData: MarriageRequest): Promise<MarriageOperationResponse>;
     marryByPersonInput(marriageData: MarriageCreateRequest): Promise<MarriageOperationResponse>;

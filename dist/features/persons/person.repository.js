@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const prisma_1 = __importDefault(require("@/shared/database/prisma"));
+const prisma_1 = __importDefault(require("../../shared/database/prisma"));
 class PersonRepository {
     async findAll(filters) {
         const normalizedStatus = filters?.status?.toUpperCase();
@@ -132,10 +132,43 @@ class PersonRepository {
             return null;
         }
     }
-    async delete(id) {
+    async delete(id, options) {
         try {
-            await prisma_1.default.person.delete({
-                where: { id },
+            await prisma_1.default.$transaction(async (tx) => {
+                const person = await tx.person.findUnique({
+                    where: { id },
+                    select: { id: true },
+                });
+                if (!person) {
+                    throw new Error("PERSON_NOT_FOUND");
+                }
+                const idsToDelete = new Set([id]);
+                if (options?.deleteSpouse) {
+                    const spouse = await tx.relationship.findFirst({
+                        where: {
+                            personId: id,
+                            type: client_1.RelationshipType.SPOUSE,
+                            endDate: null,
+                        },
+                        select: { relatedPersonId: true },
+                    });
+                    if (spouse?.relatedPersonId) {
+                        idsToDelete.add(spouse.relatedPersonId);
+                    }
+                }
+                if (options?.deleteChildren) {
+                    const parentIds = Array.from(idsToDelete);
+                    const children = await tx.parentChild.findMany({
+                        where: { parentId: { in: parentIds } },
+                        select: { childId: true },
+                    });
+                    for (const child of children) {
+                        idsToDelete.add(child.childId);
+                    }
+                }
+                await tx.person.deleteMany({
+                    where: { id: { in: Array.from(idsToDelete) } },
+                });
             });
             return true;
         }

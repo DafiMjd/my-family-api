@@ -36,8 +36,8 @@ class PersonService {
         const updatedPerson = await person_repository_1.default.update(id, personData);
         return updatedPerson ? this.mapPersonToResponse(updatedPerson) : null;
     }
-    async deletePerson(id) {
-        return await person_repository_1.default.delete(id);
+    async deletePerson(id, options) {
+        return await person_repository_1.default.delete(id, options);
     }
     async getPersonsByGender(gender) {
         const persons = await person_repository_1.default.findByGender(gender);

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const require_access_jwt_middleware_1 = require("@/shared/middleware/require-access-jwt.middleware");
+const require_access_jwt_middleware_1 = require("../../shared/middleware/require-access-jwt.middleware");
 const family_controller_1 = __importDefault(require("./family.controller"));
 const family_validation_1 = require("./family.validation");
 const router = (0, express_1.Router)();

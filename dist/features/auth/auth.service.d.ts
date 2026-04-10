@@ -1,4 +1,4 @@
-import { LoginResponse, RefreshTokenResponse } from "@/shared/types/auth.types";
+import { LoginResponse, RefreshTokenResponse } from "../../shared/types/auth.types";
 export interface VerifiedAccessToken {
     adminId: string;
     username: string;
