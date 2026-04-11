@@ -14,6 +14,7 @@ const family_routes_1 = __importDefault(require("./features/family/family.routes
 const family_tree_routes_1 = __importDefault(require("./features/family-tree/family-tree.routes"));
 const auth_routes_1 = __importDefault(require("./features/auth/auth.routes"));
 const upload_routes_1 = __importDefault(require("./features/upload/upload.routes"));
+const upload_pending_cleanup_service_1 = __importDefault(require("./features/upload/upload-pending-cleanup.service"));
 const upload_config_1 = require("./shared/config/upload.config");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -64,6 +65,7 @@ app.listen(PORT, () => {
     console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
     console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`);
     console.log(`🛡️ Admin API: http://localhost:${PORT}/api/admin`);
+    upload_pending_cleanup_service_1.default.start();
 });
 exports.default = app;
 //# sourceMappingURL=app.js.map

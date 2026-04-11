@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const promises_1 = __importDefault(require("fs/promises"));
 const path_1 = __importDefault(require("path"));
 const upload_config_1 = require("../../shared/config/upload.config");
+const SAFE_PENDING_BASENAME = /^[a-zA-Z0-9._-]+$/;
 class UploadRepository {
     pendingDir() {
         return path_1.default.join((0, upload_config_1.getUploadRoot)(), "pending");
@@ -59,6 +60,42 @@ class UploadRepository {
             }
             throw err;
         }
+    }
+    async purgePendingFilesOlderThan(maxAgeMs) {
+        const dir = this.pendingDir();
+        let deleted = 0;
+        let entries;
+        try {
+            entries = await promises_1.default.readdir(dir, { withFileTypes: true, encoding: "utf8" });
+        }
+        catch {
+            return 0;
+        }
+        const now = Date.now();
+        for (const ent of entries) {
+            if (!ent.isFile()) {
+                continue;
+            }
+            const name = String(ent.name);
+            if (!SAFE_PENDING_BASENAME.test(name)) {
+                continue;
+            }
+            const fullPath = path_1.default.join(dir, name);
+            try {
+                const st = await promises_1.default.stat(fullPath);
+                if (!st.isFile()) {
+                    continue;
+                }
+                const ageMs = now - st.mtimeMs;
+                if (ageMs > maxAgeMs) {
+                    await promises_1.default.unlink(fullPath);
+                    deleted += 1;
+                }
+            }
+            catch {
+            }
+        }
+        return deleted;
     }
 }
 exports.default = new UploadRepository();

@@ -4,6 +4,7 @@ declare class UploadRepository {
     permanentDir(): string;
     ensurePendingDir(): Promise<void>;
     movePendingToPermanent(filename: string): Promise<MovePendingToPermanentResult>;
+    purgePendingFilesOlderThan(maxAgeMs: number): Promise<number>;
 }
 declare const _default: UploadRepository;
 export default _default;

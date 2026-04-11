@@ -11,6 +11,7 @@ import familyRoutes from '@/features/family/family.routes';
 import familyTreeRoutes from '@/features/family-tree/family-tree.routes';
 import authRoutes from '@/features/auth/auth.routes';
 import uploadRoutes from '@/features/upload/upload.routes';
+import uploadPendingCleanupService from '@/features/upload/upload-pending-cleanup.service';
 import { getUploadRoot } from '@/shared/config/upload.config';
 // import adminRoutes from '@/features/admin/admin.routes';
 
@@ -84,6 +85,7 @@ app.listen(PORT, () => {
   console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
   console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`);
   console.log(`🛡️ Admin API: http://localhost:${PORT}/api/admin`);
+  uploadPendingCleanupService.start();
 });
 
 export default app;
