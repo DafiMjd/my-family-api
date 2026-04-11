@@ -13,6 +13,8 @@ const marriage_routes_1 = __importDefault(require("./features/marriage/marriage.
 const family_routes_1 = __importDefault(require("./features/family/family.routes"));
 const family_tree_routes_1 = __importDefault(require("./features/family-tree/family-tree.routes"));
 const auth_routes_1 = __importDefault(require("./features/auth/auth.routes"));
+const upload_routes_1 = __importDefault(require("./features/upload/upload.routes"));
+const upload_config_1 = require("./shared/config/upload.config");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
@@ -21,11 +23,17 @@ app.use((0, cors_1.default)());
 app.use((0, morgan_1.default)('combined'));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+const uploadRoot = (0, upload_config_1.getUploadRoot)();
+app.use('/uploads', (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+}, express_1.default.static(uploadRoot, { index: false }));
 app.use('/api/person', person_routes_1.default);
 app.use('/api/marriage', marriage_routes_1.default);
 app.use('/api/family', family_routes_1.default);
 app.use('/api/family-tree', family_tree_routes_1.default);
 app.use('/api/auth', auth_routes_1.default);
+app.use('/api/upload', upload_routes_1.default);
 app.get('/health', (req, res) => {
     res.status(200).json({
         status: 'OK',
@@ -54,6 +62,7 @@ app.listen(PORT, () => {
     console.log(`👨‍👩‍👧‍👦 Family API: http://localhost:${PORT}/api/family`);
     console.log(`🌳 Family Tree API: http://localhost:${PORT}/api/family-tree`);
     console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
+    console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`);
     console.log(`🛡️ Admin API: http://localhost:${PORT}/api/admin`);
 });
 exports.default = app;

@@ -16,6 +16,7 @@ import {
 } from "@/shared/types/family.types";
 import { CreatePersonRequest } from "@/shared/types/person.types";
 import { Gender, FamilyMemberRole, Person } from "@prisma/client";
+import uploadPromotionService from "@/features/upload/upload-promotion.service";
 
 class FamilyService {
   async createFamily(data: CreateFamilyRequest): Promise<FamilyResponse> {
@@ -152,7 +153,20 @@ class FamilyService {
       description ?? null
     );
 
-    return this.mapToResponse(family, undefined);
+    await Promise.all([
+      uploadPromotionService.syncPersonProfilePictureUrl(father.id, father.profilePictureUrl),
+      uploadPromotionService.syncPersonProfilePictureUrl(mother.id, mother.profilePictureUrl),
+      ...children.map((child) =>
+        uploadPromotionService.syncPersonProfilePictureUrl(child.id, child.profilePictureUrl)
+      ),
+    ]);
+
+    const refreshedFamily = await familyRepository.findById(family.id);
+    if (!refreshedFamily) {
+      throw new Error("Family was created but could not be reloaded");
+    }
+
+    return this.mapToResponse(refreshedFamily, undefined);
   }
 
   /**
@@ -262,7 +276,20 @@ class FamilyService {
 
     const family = await this.createFamilyWithMembers(father, mother, children);
 
-    return this.mapToResponse(family, undefined);
+    await Promise.all([
+      uploadPromotionService.syncPersonProfilePictureUrl(father.id, father.profilePictureUrl),
+      uploadPromotionService.syncPersonProfilePictureUrl(mother.id, mother.profilePictureUrl),
+      ...children.map((child) =>
+        uploadPromotionService.syncPersonProfilePictureUrl(child.id, child.profilePictureUrl)
+      ),
+    ]);
+
+    const refreshedFamily = await familyRepository.findById(family.id);
+    if (!refreshedFamily) {
+      throw new Error("Family was created but could not be reloaded");
+    }
+
+    return this.mapToResponse(refreshedFamily, undefined);
   }
 
   private async createFamilyWithMembers(

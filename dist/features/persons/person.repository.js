@@ -198,6 +198,9 @@ class PersonRepository {
         });
     }
     async findPersonsByIds(personIds) {
+        if (personIds.length === 0) {
+            return [];
+        }
         return await prisma_1.default.person.findMany({
             where: {
                 id: { in: personIds },

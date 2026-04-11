@@ -7,6 +7,7 @@ const family_repository_1 = __importDefault(require("./family.repository"));
 const family_tree_repository_1 = __importDefault(require("../family-tree/family-tree.repository"));
 const person_repository_1 = __importDefault(require("../persons/person.repository"));
 const client_1 = require("@prisma/client");
+const upload_promotion_service_1 = __importDefault(require("../upload/upload-promotion.service"));
 class FamilyService {
     async createFamily(data) {
         const fatherIn = this.splitFamilyParentInput(data.father);
@@ -83,7 +84,16 @@ class FamilyService {
             ? String(data.name).trim()
             : `${father.name} & ${mother.name}'s Family`;
         const family = await this.createFamilyWithMembers(father, mother, children, familyName, description ?? null);
-        return this.mapToResponse(family, undefined);
+        await Promise.all([
+            upload_promotion_service_1.default.syncPersonProfilePictureUrl(father.id, father.profilePictureUrl),
+            upload_promotion_service_1.default.syncPersonProfilePictureUrl(mother.id, mother.profilePictureUrl),
+            ...children.map((child) => upload_promotion_service_1.default.syncPersonProfilePictureUrl(child.id, child.profilePictureUrl)),
+        ]);
+        const refreshedFamily = await family_repository_1.default.findById(family.id);
+        if (!refreshedFamily) {
+            throw new Error("Family was created but could not be reloaded");
+        }
+        return this.mapToResponse(refreshedFamily, undefined);
     }
     async resolveFamilyChildrenPersons(childrenInput, father, mother) {
         const seenIds = new Set();
@@ -152,7 +162,16 @@ class FamilyService {
             return child;
         }));
         const family = await this.createFamilyWithMembers(father, mother, children);
-        return this.mapToResponse(family, undefined);
+        await Promise.all([
+            upload_promotion_service_1.default.syncPersonProfilePictureUrl(father.id, father.profilePictureUrl),
+            upload_promotion_service_1.default.syncPersonProfilePictureUrl(mother.id, mother.profilePictureUrl),
+            ...children.map((child) => upload_promotion_service_1.default.syncPersonProfilePictureUrl(child.id, child.profilePictureUrl)),
+        ]);
+        const refreshedFamily = await family_repository_1.default.findById(family.id);
+        if (!refreshedFamily) {
+            throw new Error("Family was created but could not be reloaded");
+        }
+        return this.mapToResponse(refreshedFamily, undefined);
     }
     async createFamilyWithMembers(father, mother, children, name, description) {
         const familyName = name || `${father.name} & ${mother.name}'s Family`;

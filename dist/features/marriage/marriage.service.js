@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const marriage_repository_1 = __importDefault(require("./marriage.repository"));
 const person_repository_1 = __importDefault(require("../persons/person.repository"));
 const person_service_1 = __importDefault(require("../persons/person.service"));
+const upload_promotion_service_1 = __importDefault(require("../upload/upload-promotion.service"));
 class MarriageService {
     async marry(marriageData) {
         return this.createMarriageByIds(marriageData);
@@ -43,6 +44,10 @@ class MarriageService {
             throw new Error("endDate cannot be earlier than startDate");
         }
         const relationships = await marriage_repository_1.default.createMarriage(personId1, person1.name, personId2, person2.name, marriageDate, marriageEndDate);
+        await Promise.all([
+            upload_promotion_service_1.default.syncPersonProfilePictureUrl(person1.id, person1.profilePictureUrl),
+            upload_promotion_service_1.default.syncPersonProfilePictureUrl(person2.id, person2.profilePictureUrl),
+        ]);
         return {
             success: true,
             data: relationships.map(this.mapRelationshipToResponse),

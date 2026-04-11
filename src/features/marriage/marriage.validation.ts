@@ -1,4 +1,5 @@
 import { body, query } from "express-validator";
+import { HTTP_HTTPS_URL_OPTIONS } from "@/shared/validation/http-url-options";
 
 const startDateValidation = body("startDate")
   .optional()
@@ -87,7 +88,7 @@ const createMarryParticipantValidation = (participantPath: "person1" | "person2"
   body(`${participantPath}.newPerson.profilePictureUrl`)
     .if(body(`${participantPath}.newPerson`).exists())
     .optional({ nullable: true })
-    .isURL()
+    .isURL(HTTP_HTTPS_URL_OPTIONS)
     .withMessage(`${participantPath}.newPerson.profilePictureUrl must be a valid URL`),
 ];
 

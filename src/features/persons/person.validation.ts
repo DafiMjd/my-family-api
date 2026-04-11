@@ -1,4 +1,5 @@
 import { query, body, ValidationChain } from "express-validator";
+import { HTTP_HTTPS_URL_OPTIONS } from "@/shared/validation/http-url-options";
 
 // Base validators for top-level person fields
 const genderEnumValidation = body(
@@ -10,8 +11,8 @@ const profilePictureUrlValidation = body(
   "profilePictureUrl",
   "profilePictureUrl must be a valid URL"
 )
-  .optional()
-  .isURL();
+  .optional({ nullable: true })
+  .isURL(HTTP_HTTPS_URL_OPTIONS);
 
 export const createPersonValidation = [
   //   query('gender').optional().isString().withMessage('Gender must be a string'),
@@ -62,7 +63,7 @@ export const buildCreatePersonValidation = (
       "profilePictureUrl must be a valid URL"
     )
       .optional({ nullable: true })
-      .isURL(),
+      .isURL(HTTP_HTTPS_URL_OPTIONS),
   ];
 
 /**
@@ -107,7 +108,7 @@ export const buildCreatePersonValidationIfParentExists = (
     body(`${fieldPrefix}profilePictureUrl`)
       .if(whenPresent)
       .optional({ nullable: true })
-      .isURL()
+      .isURL(HTTP_HTTPS_URL_OPTIONS)
       .withMessage("profilePictureUrl must be a valid URL"),
   ];
 };

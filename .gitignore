@@ -2,4 +2,7 @@ node_modules
 # Keep environment variables out of version control
 .env
 
+# Local user uploads (VPS uses UPLOAD_ROOT outside repo or same path)
+data/uploads
+
 /src/generated/prisma

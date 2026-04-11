@@ -1,6 +1,7 @@
 import marriageRepository from "./marriage.repository";
 import personRepository from "../persons/person.repository";
 import personService from "../persons/person.service";
+import uploadPromotionService from "@/features/upload/upload-promotion.service";
 import {
   MarriageRequest,
   MarriageCreateRequest,
@@ -83,6 +84,17 @@ class MarriageService {
       marriageDate,
       marriageEndDate
     );
+
+    await Promise.all([
+      uploadPromotionService.syncPersonProfilePictureUrl(
+        person1.id,
+        person1.profilePictureUrl
+      ),
+      uploadPromotionService.syncPersonProfilePictureUrl(
+        person2.id,
+        person2.profilePictureUrl
+      ),
+    ]);
 
     return {
       success: true,

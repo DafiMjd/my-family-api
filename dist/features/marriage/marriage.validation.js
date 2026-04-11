@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.personListValidation = exports.cancelDivorceValidation = exports.cancelMarriageValidation = exports.divorceValidation = exports.marryCreateValidation = exports.marryValidation = void 0;
 const express_validator_1 = require("express-validator");
+const http_url_options_1 = require("../../shared/validation/http-url-options");
 const startDateValidation = (0, express_validator_1.body)("startDate")
     .optional()
     .isDate()
@@ -83,7 +84,7 @@ const createMarryParticipantValidation = (participantPath) => [
     (0, express_validator_1.body)(`${participantPath}.newPerson.profilePictureUrl`)
         .if((0, express_validator_1.body)(`${participantPath}.newPerson`).exists())
         .optional({ nullable: true })
-        .isURL()
+        .isURL(http_url_options_1.HTTP_HTTPS_URL_OPTIONS)
         .withMessage(`${participantPath}.newPerson.profilePictureUrl must be a valid URL`),
 ];
 exports.marryCreateValidation = [

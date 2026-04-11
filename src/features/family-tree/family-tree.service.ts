@@ -1,4 +1,6 @@
 import type { Person, PersonResponse } from "@/shared/types/person.types";
+import personRepository from "@/features/persons/person.repository";
+import uploadPromotionService from "@/features/upload/upload-promotion.service";
 import familyTreeRepository from "./family-tree.repository";
 import {
   AddChildrenResponse,
@@ -173,6 +175,12 @@ class FamilyTreeService {
 
     const { created, parents } = result;
 
+    await Promise.all(
+      created.map((c) =>
+        uploadPromotionService.syncPersonProfilePictureUrl(c.id, c.profilePictureUrl)
+      )
+    );
+
     const parentsMustHaveDifferentGenders =
       (parents[0].gender !== "MAN" && parents[1].gender !== "WOMAN") ||
       (parents[0].gender !== "WOMAN" && parents[1].gender !== "MAN");
@@ -181,8 +189,19 @@ class FamilyTreeService {
       throw new Error("Parents must have different genders");
     }
 
+    const createdIds = created.map((c) => c.id);
+    const reloaded = await personRepository.findPersonsByIds(createdIds);
+    const byId = new Map(reloaded.map((p) => [p.id, p]));
+    const createdAfterPromote = createdIds.map((id) => {
+      const p = byId.get(id);
+      if (!p) {
+        throw new Error(`Child person missing after add-children: ${id}`);
+      }
+      return p;
+    });
+
     return {
-      children: created.map((c) => this.mapToPersonResponse(c)),
+      children: createdAfterPromote.map((c) => this.mapToPersonResponse(c)),
       connectedParents: parents.map((p) => this.mapToPersonResponse(p)),
     };
   }

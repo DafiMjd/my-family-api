@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const person_repository_1 = __importDefault(require("./person.repository"));
+const upload_promotion_service_1 = __importDefault(require("../upload/upload-promotion.service"));
 const person_types_1 = require("../../shared/types/person.types");
 class PersonService {
     async getAllPersons(filters) {
@@ -41,11 +42,18 @@ class PersonService {
             await person_repository_1.default.upsertBiologicalParentChild(father.id, father.name, person.id, person.name);
             await person_repository_1.default.upsertBiologicalParentChild(mother.id, mother.name, person.id, person.name);
         }
-        return this.mapPersonToResponse(person);
+        await upload_promotion_service_1.default.syncPersonProfilePictureUrl(person.id, person.profilePictureUrl);
+        const promotedPerson = await person_repository_1.default.findById(person.id);
+        return this.mapPersonToResponse(promotedPerson ?? person);
     }
     async updatePerson(id, personData) {
         const updatedPerson = await person_repository_1.default.update(id, personData);
-        return updatedPerson ? this.mapPersonToResponse(updatedPerson) : null;
+        if (!updatedPerson) {
+            return null;
+        }
+        await upload_promotion_service_1.default.syncPersonProfilePictureUrl(updatedPerson.id, updatedPerson.profilePictureUrl);
+        const refreshed = await person_repository_1.default.findById(id);
+        return refreshed ? this.mapPersonToResponse(refreshed) : null;
     }
     async deletePerson(id, options) {
         return await person_repository_1.default.delete(id, options);

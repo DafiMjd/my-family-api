@@ -284,6 +284,9 @@ class PersonRepository {
   }
 
   async findPersonsByIds(personIds: string[]): Promise<Person[]> {
+    if (personIds.length === 0) {
+      return [];
+    }
     return await prisma.person.findMany({
       where: {
         id: { in: personIds },

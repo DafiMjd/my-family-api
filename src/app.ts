@@ -10,6 +10,8 @@ import marriageRoutes from '@/features/marriage/marriage.routes';
 import familyRoutes from '@/features/family/family.routes';
 import familyTreeRoutes from '@/features/family-tree/family-tree.routes';
 import authRoutes from '@/features/auth/auth.routes';
+import uploadRoutes from '@/features/upload/upload.routes';
+import { getUploadRoot } from '@/shared/config/upload.config';
 // import adminRoutes from '@/features/admin/admin.routes';
 
 // Load environment variables
@@ -25,12 +27,24 @@ app.use(morgan('combined')); // Logging
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
+// Public media (pending + future permanent) — CORP allows other origins to display images (e.g. admin on another host)
+const uploadRoot = getUploadRoot();
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(uploadRoot, { index: false })
+);
+
 // Routes
 app.use('/api/person', personRoutes);
 app.use('/api/marriage', marriageRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/family-tree', familyTreeRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/upload', uploadRoutes);
 // app.use('/api/admin', adminRoutes);
 
 // Health check endpoint
@@ -68,6 +82,7 @@ app.listen(PORT, () => {
   console.log(`👨‍👩‍👧‍👦 Family API: http://localhost:${PORT}/api/family`);
   console.log(`🌳 Family Tree API: http://localhost:${PORT}/api/family-tree`);
   console.log(`🔐 Auth API: http://localhost:${PORT}/api/auth`);
+  console.log(`📤 Upload API: http://localhost:${PORT}/api/upload`);
   console.log(`🛡️ Admin API: http://localhost:${PORT}/api/admin`);
 });
 

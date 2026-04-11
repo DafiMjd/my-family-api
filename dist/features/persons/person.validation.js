@@ -2,10 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePersonValidation = exports.deletePersonQueryValidation = exports.latestPersonsQueryValidation = exports.listPersonsQueryValidation = exports.buildCreateFamilyParentValidation = exports.buildCreatePersonValidationIfParentExists = exports.buildCreatePersonValidation = exports.createPersonValidation = void 0;
 const express_validator_1 = require("express-validator");
+const http_url_options_1 = require("../../shared/validation/http-url-options");
 const genderEnumValidation = (0, express_validator_1.body)("gender", "gender must be MAN or WOMAN").isIn(["MAN", "WOMAN"]);
 const profilePictureUrlValidation = (0, express_validator_1.body)("profilePictureUrl", "profilePictureUrl must be a valid URL")
-    .optional()
-    .isURL();
+    .optional({ nullable: true })
+    .isURL(http_url_options_1.HTTP_HTTPS_URL_OPTIONS);
 exports.createPersonValidation = [
     (0, express_validator_1.body)("name", "name is required").exists(),
     (0, express_validator_1.body)("gender", "gender is required").exists(),
@@ -43,7 +44,7 @@ const buildCreatePersonValidation = (prefix = "") => [
         .isString(),
     (0, express_validator_1.body)(`${prefix}profilePictureUrl`, "profilePictureUrl must be a valid URL")
         .optional({ nullable: true })
-        .isURL(),
+        .isURL(http_url_options_1.HTTP_HTTPS_URL_OPTIONS),
 ];
 exports.buildCreatePersonValidation = buildCreatePersonValidation;
 const buildCreatePersonValidationIfParentExists = (fieldPrefix) => {
@@ -81,7 +82,7 @@ const buildCreatePersonValidationIfParentExists = (fieldPrefix) => {
         (0, express_validator_1.body)(`${fieldPrefix}profilePictureUrl`)
             .if(whenPresent)
             .optional({ nullable: true })
-            .isURL()
+            .isURL(http_url_options_1.HTTP_HTTPS_URL_OPTIONS)
             .withMessage("profilePictureUrl must be a valid URL"),
     ];
 };

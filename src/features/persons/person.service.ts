@@ -3,6 +3,7 @@ import personRepository, {
   PersonFilters,
   PaginationQuery,
 } from "./person.repository";
+import uploadPromotionService from "@/features/upload/upload-promotion.service";
 import {
   Person,
   CreatePersonApiRequest,
@@ -75,7 +76,13 @@ class PersonService {
       );
     }
 
-    return this.mapPersonToResponse(person);
+    await uploadPromotionService.syncPersonProfilePictureUrl(
+      person.id,
+      person.profilePictureUrl
+    );
+    const promotedPerson = await personRepository.findById(person.id);
+
+    return this.mapPersonToResponse(promotedPerson ?? person);
   }
 
   async updatePerson(
@@ -83,7 +90,17 @@ class PersonService {
     personData: UpdatePersonRequest
   ): Promise<PersonResponse | null> {
     const updatedPerson = await personRepository.update(id, personData);
-    return updatedPerson ? this.mapPersonToResponse(updatedPerson) : null;
+    if (!updatedPerson) {
+      return null;
+    }
+
+    await uploadPromotionService.syncPersonProfilePictureUrl(
+      updatedPerson.id,
+      updatedPerson.profilePictureUrl
+    );
+    const refreshed = await personRepository.findById(id);
+
+    return refreshed ? this.mapPersonToResponse(refreshed) : null;
   }
 
   async deletePerson(id: string, options?: DeletePersonOptions): Promise<boolean> {

@@ -3,6 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const person_repository_1 = __importDefault(require("../persons/person.repository"));
+const upload_promotion_service_1 = __importDefault(require("../upload/upload-promotion.service"));
 const family_tree_repository_1 = __importDefault(require("./family-tree.repository"));
 const family_tree_types_1 = require("../../shared/types/family-tree.types");
 class FamilyTreeService {
@@ -124,13 +126,24 @@ class FamilyTreeService {
             throw new Error("One or both parents not found");
         }
         const { created, parents } = result;
+        await Promise.all(created.map((c) => upload_promotion_service_1.default.syncPersonProfilePictureUrl(c.id, c.profilePictureUrl)));
         const parentsMustHaveDifferentGenders = (parents[0].gender !== "MAN" && parents[1].gender !== "WOMAN") ||
             (parents[0].gender !== "WOMAN" && parents[1].gender !== "MAN");
         if (!parentsMustHaveDifferentGenders) {
             throw new Error("Parents must have different genders");
         }
+        const createdIds = created.map((c) => c.id);
+        const reloaded = await person_repository_1.default.findPersonsByIds(createdIds);
+        const byId = new Map(reloaded.map((p) => [p.id, p]));
+        const createdAfterPromote = createdIds.map((id) => {
+            const p = byId.get(id);
+            if (!p) {
+                throw new Error(`Child person missing after add-children: ${id}`);
+            }
+            return p;
+        });
         return {
-            children: created.map((c) => this.mapToPersonResponse(c)),
+            children: createdAfterPromote.map((c) => this.mapToPersonResponse(c)),
             connectedParents: parents.map((p) => this.mapToPersonResponse(p)),
         };
     }
