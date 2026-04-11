@@ -13,6 +13,7 @@
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
     "db:seed:admin": "ts-node -r dotenv/config prisma/seed-admin.ts",
+    "uploads:cleanup-permanent-orphans": "ts-node -r dotenv/config -r tsconfig-paths/register src/scripts/cleanup-orphan-permanent-uploads.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

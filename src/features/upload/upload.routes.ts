@@ -47,4 +47,11 @@ router.post(
   uploadController.uploadPending.bind(uploadController)
 );
 
+// POST /api/upload/cleanup-unreferenced-permanent — list/delete permanent files not referenced by any person
+router.post(
+  "/cleanup-unreferenced-permanent",
+  requireAccessJwt,
+  uploadController.cleanupUnreferencedPermanent.bind(uploadController)
+);
+
 export default router;

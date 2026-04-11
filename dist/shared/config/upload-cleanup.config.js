@@ -15,10 +15,10 @@ function parsePositiveIntEnv(key, fallback) {
     return Math.floor(n);
 }
 function getPendingUploadTtlMs() {
-    return parsePositiveIntEnv("UPLOAD_PENDING_TTL_MS", 2 * 60 * 1000);
+    return parsePositiveIntEnv("UPLOAD_PENDING_TTL_MS", 20 * 60 * 1000);
 }
 function getPendingCleanupIntervalMs() {
-    return parsePositiveIntEnv("UPLOAD_PENDING_CLEANUP_INTERVAL_MS", 60 * 1000);
+    return parsePositiveIntEnv("UPLOAD_PENDING_CLEANUP_INTERVAL_MS", 12 * 60 * 60 * 1000);
 }
 function isPendingUploadCleanupEnabled() {
     const v = process.env.UPLOAD_PENDING_CLEANUP_ENABLED?.toLowerCase();

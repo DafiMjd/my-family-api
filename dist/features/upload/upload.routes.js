@@ -40,5 +40,6 @@ function handleMulterUpload(req, res, next) {
     });
 }
 router.post("", require_access_jwt_middleware_1.requireAccessJwt, handleMulterUpload, upload_controller_1.default.uploadPending.bind(upload_controller_1.default));
+router.post("/cleanup-unreferenced-permanent", require_access_jwt_middleware_1.requireAccessJwt, upload_controller_1.default.cleanupUnreferencedPermanent.bind(upload_controller_1.default));
 exports.default = router;
 //# sourceMappingURL=upload.routes.js.map
