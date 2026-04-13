@@ -5,7 +5,7 @@ export type Person = {
   id: string;
   name: string;
   gender: Gender;
-  birthDate: Date;
+  birthDate: Date | null;
   deathDate: Date | null;
   bio: string | null;
   profilePictureUrl: string | null;
@@ -27,7 +27,7 @@ export interface CreatePersonRequestWithSpouse extends CreatePersonRequest {
 export interface CreatePersonRequest {
   name: string;
   gender: Gender;
-  birthDate: Date | string;
+  birthDate?: Date | string | null;
   deathDate?: Date | string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;
@@ -41,7 +41,7 @@ export interface CreatePersonApiRequest extends CreatePersonRequest {
 export interface UpdatePersonRequest {
   name?: string;
   gender?: Gender;
-  birthDate?: Date | string;
+  birthDate?: Date | string | null;
   deathDate?: Date | string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;
@@ -51,7 +51,7 @@ export interface PersonResponse {
   id: string;
   name: string;
   gender: Gender;
-  birthDate: string;
+  birthDate: string | null;
   deathDate: string | null;
   bio: string | null;
   profilePictureUrl: string | null;

@@ -71,8 +71,7 @@ const createMarryParticipantValidation = (participantPath: "person1" | "person2"
     .withMessage(`${participantPath}.newPerson.gender must be MAN or WOMAN`),
   body(`${participantPath}.newPerson.birthDate`)
     .if(body(`${participantPath}.newPerson`).exists())
-    .exists()
-    .withMessage(`${participantPath}.newPerson.birthDate is required`)
+    .optional({ nullable: true })
     .isDate()
     .withMessage(`${participantPath}.newPerson.birthDate must be a valid date`),
   body(`${participantPath}.newPerson.deathDate`)

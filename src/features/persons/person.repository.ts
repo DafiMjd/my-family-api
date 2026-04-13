@@ -37,22 +37,22 @@ class PersonRepository {
     const statusWhere =
       normalizedStatus === "MARRIED"
         ? {
+          relationships: {
+            some: {
+              type: RelationshipType.SPOUSE,
+              endDate: null,
+            },
+          },
+        }
+        : normalizedStatus === "SINGLE"
+          ? {
             relationships: {
-              some: {
+              none: {
                 type: RelationshipType.SPOUSE,
                 endDate: null,
               },
             },
           }
-        : normalizedStatus === "SINGLE"
-          ? {
-              relationships: {
-                none: {
-                  type: RelationshipType.SPOUSE,
-                  endDate: null,
-                },
-              },
-            }
           : {};
 
     const where = {
@@ -105,7 +105,7 @@ class PersonRepository {
     return await prisma.person.create({
       data: {
         ...personData,
-        birthDate: new Date(personData.birthDate),
+        birthDate: personData.birthDate ? new Date(personData.birthDate) : null,
         deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
       },
     });
@@ -169,13 +169,20 @@ class PersonRepository {
   }
 
   async createMany(datas: CreatePersonRequest[]): Promise<Person[]> {
-    return await prisma.person.createManyAndReturn({
-      data: datas.map((person) => ({
-        ...person,
-        birthDate: new Date(person.birthDate),
-        deathDate: person.deathDate ? new Date(person.deathDate) : null,
-      })),
-    });
+    return await prisma.$transaction(
+      datas.map((person) =>
+        prisma.person.create({
+          data: {
+            name: person.name,
+            gender: person.gender,
+            birthDate: person.birthDate ? new Date(person.birthDate) : null,
+            deathDate: person.deathDate ? new Date(person.deathDate) : null,
+            bio: person.bio ?? null,
+            profilePictureUrl: person.profilePictureUrl ?? null,
+          },
+        })
+      )
+    );
   }
 
   async update(
@@ -186,8 +193,10 @@ class PersonRepository {
       const updateData: any = { ...personData };
 
       // Convert date strings to Date objects if provided
-      if (personData.birthDate) {
-        updateData.birthDate = new Date(personData.birthDate);
+      if (personData.birthDate !== undefined) {
+        updateData.birthDate = personData.birthDate
+          ? new Date(personData.birthDate)
+          : null;
       }
       if (personData.deathDate !== undefined) {
         updateData.deathDate = personData.deathDate

@@ -370,7 +370,7 @@ class FamilyTreeRepository {
             data: {
               name: np.name,
               gender: np.gender,
-              birthDate: new Date(np.birthDate),
+              birthDate: np.birthDate ? new Date(np.birthDate) : null,
               deathDate: np.deathDate ? new Date(np.deathDate) : null,
               bio: np.bio ?? null,
               profilePictureUrl: np.profilePictureUrl ?? null,

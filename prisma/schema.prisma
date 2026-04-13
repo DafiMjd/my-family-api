@@ -27,7 +27,7 @@ model Person {
   id String @id @default(uuid())
   name String @db.VarChar(100)
   gender Gender
-  birthDate DateTime
+  birthDate DateTime?
   deathDate DateTime?
   bio String?
   profilePictureUrl String?

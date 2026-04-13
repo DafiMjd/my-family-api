@@ -46,10 +46,11 @@ function assertAddChildrenItems(children: unknown): void {
     if (child.gender !== "MAN" && child.gender !== "WOMAN") {
       throw new Error(`${prefix}.newPerson.gender must be MAN or WOMAN`);
     }
-    if (typeof child.birthDate !== "string" || !child.birthDate.trim()) {
-      throw new Error(`${prefix}.newPerson.birthDate is required`);
-    }
-    if (Number.isNaN(Date.parse(child.birthDate as string))) {
+    if (
+      child.birthDate != null &&
+      child.birthDate !== "" &&
+      (typeof child.birthDate !== "string" || Number.isNaN(Date.parse(child.birthDate as string)))
+    ) {
       throw new Error(`${prefix}.newPerson.birthDate must be a valid date`);
     }
     if (child.deathDate != null && child.deathDate !== "") {

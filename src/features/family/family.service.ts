@@ -14,8 +14,8 @@ import {
   FamilyWithMembers,
   CreateFamilyRequest,
 } from "@/shared/types/family.types";
-import { CreatePersonRequest } from "@/shared/types/person.types";
-import { Gender, FamilyMemberRole, Person } from "@prisma/client";
+import { CreatePersonRequest, Person } from "@/shared/types/person.types";
+import { Gender, FamilyMemberRole } from "@prisma/client";
 import uploadPromotionService from "@/features/upload/upload-promotion.service";
 
 class FamilyService {

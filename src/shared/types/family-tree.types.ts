@@ -4,7 +4,7 @@ export type FamilyTreePerson = {
   id: string;
   name: string;
   gender: Gender;
-  birthDate: Date;
+  birthDate: Date | null;
   deathDate: Date | null;
   bio: string | null;
   profilePictureUrl: string | null;
@@ -63,7 +63,7 @@ export interface FamilyTreePersonResponse {
   id: string;
   name: string;
   gender: Gender;
-  birthDate: string;
+  birthDate: string | null;
   deathDate: string | null;
   bio: string | null;
   profilePictureUrl: string | null;
@@ -123,7 +123,7 @@ export interface FamilyTreeClosestRelatedPeopleResponse {
 export interface AddChildNewPersonInput {
   name: string;
   gender: Gender;
-  birthDate: string;
+  birthDate?: string | null;
   deathDate?: string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;

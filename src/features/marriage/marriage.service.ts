@@ -300,7 +300,7 @@ class MarriageService {
       id: person.id,
       name: person.name,
       gender: person.gender,
-      birthDate: person.birthDate.toISOString(),
+      birthDate: person.birthDate ? person.birthDate.toISOString() : null,
       deathDate: person.deathDate ? person.deathDate.toISOString() : null,
       bio: person.bio,
       profilePictureUrl: person.profilePictureUrl,

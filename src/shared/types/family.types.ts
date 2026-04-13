@@ -24,7 +24,7 @@ export type FamilyWithMembers = Family & {
       id: string;
       name: string;
       gender: Gender;
-      birthDate: Date;
+      birthDate: Date | null;
       deathDate: Date | null;
       bio: string | null;
       profilePictureUrl: string | null;
@@ -104,7 +104,7 @@ export interface FamilyResponse {
     id: string;
     name: string;
     gender: Gender;
-    birthDate: Date;
+    birthDate: Date | null;
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
@@ -113,7 +113,7 @@ export interface FamilyResponse {
     id: string;
     name: string;
     gender: Gender;
-    birthDate: Date;
+    birthDate: Date | null;
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
@@ -122,7 +122,7 @@ export interface FamilyResponse {
     id: string;
     name: string;
     gender: Gender;
-    birthDate: Date;
+    birthDate: Date | null;
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
@@ -131,7 +131,7 @@ export interface FamilyResponse {
       id: string;
       name: string;
       gender: Gender;
-      birthDate: Date;
+      birthDate: Date | null;
       deathDate: Date | null;
       bio: string | null;
       profilePictureUrl: string | null;

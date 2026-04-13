@@ -20,8 +20,9 @@ export const createPersonValidation = [
   body("name", "name is required").exists(),
   body("gender", "gender is required").exists(),
   genderEnumValidation,
-  body("birthDate", "birthDate is required").exists(),
-  body("birthDate", "birthDate must be a valid date").isDate(),
+  body("birthDate", "birthDate must be a valid date")
+    .optional({ nullable: true })
+    .isDate(),
   body("deathDate", "deathDate must be a valid date")
     .optional({ nullable: true })
     .isDate(),
@@ -50,8 +51,9 @@ export const buildCreatePersonValidation = (
       `${prefix}gender`,
       "gender must be MAN or WOMAN"
     ).isIn(["MAN", "WOMAN"]),
-    body(`${prefix}birthDate`, "birthDate is required").exists(),
-    body(`${prefix}birthDate`, "birthDate must be a valid date").isDate(),
+    body(`${prefix}birthDate`, "birthDate must be a valid date")
+      .optional({ nullable: true })
+      .isDate(),
     body(`${prefix}deathDate`, "deathDate must be a valid date")
       .optional({ nullable: true })
       .isDate(),
@@ -92,8 +94,7 @@ export const buildCreatePersonValidationIfParentExists = (
       .withMessage("gender must be MAN or WOMAN"),
     body(`${fieldPrefix}birthDate`)
       .if(whenPresent)
-      .exists()
-      .withMessage("birthDate is required when spouse is provided")
+      .optional({ nullable: true })
       .isDate()
       .withMessage("birthDate must be a valid date"),
     body(`${fieldPrefix}deathDate`)
@@ -161,7 +162,9 @@ export const updatePersonValidation = [
   body("name", "name is required").optional(),
   body("gender", "gender is required").optional(),
   genderEnumValidation,
-  body("birthDate", "birthDate must be a valid date").optional().isDate(),
+  body("birthDate", "birthDate must be a valid date")
+    .optional({ nullable: true })
+    .isDate(),
   body("deathDate", "deathDate must be a valid date")
     .optional({ nullable: true })
     .isDate(),
