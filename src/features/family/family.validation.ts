@@ -72,6 +72,26 @@ function assertCreateFamilyChildren(children: unknown): void {
         throw new Error(`${prefix}.newPerson.profilePictureUrl must be a valid URL`);
       }
     }
+    if (child.phoneNumber != null && child.phoneNumber !== "" && typeof child.phoneNumber !== "string") {
+      throw new Error(`${prefix}.newPerson.phoneNumber must be a string`);
+    }
+    if (
+      child.phoneNumber != null &&
+      child.phoneNumber !== "" &&
+      String(child.phoneNumber).length > 50
+    ) {
+      throw new Error(`${prefix}.newPerson.phoneNumber must be at most 50 characters`);
+    }
+    if (child.address != null && child.address !== "" && typeof child.address !== "string") {
+      throw new Error(`${prefix}.newPerson.address must be a string`);
+    }
+    if (
+      child.address != null &&
+      child.address !== "" &&
+      String(child.address).length > 2000
+    ) {
+      throw new Error(`${prefix}.newPerson.address must be at most 2000 characters`);
+    }
     if (child.parent != null || child.spouse != null) {
       throw new Error(
         `${prefix}.newPerson must not include parent or spouse; parents are body father/mother`
@@ -144,6 +164,16 @@ export const updateFamilyChildrenValidation = [
   body("childrenIds.*")
     .isString()
     .withMessage("Each child ID must be a string"),
+  body("phoneNumber", "phoneNumber must be a string")
+    .optional({ nullable: true })
+    .isString()
+    .bail()
+    .isLength({ max: 50 }),
+  body("address", "address must be a string")
+    .optional({ nullable: true })
+    .isString()
+    .bail()
+    .isLength({ max: 2000 }),
 ];
 
 // Validation for updating family father

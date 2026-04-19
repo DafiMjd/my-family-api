@@ -1,11 +1,23 @@
-import {
+import type { Prisma } from "@prisma/client";
+import { ParentType, RelationshipType } from "@prisma/client";
+import prisma from "@/shared/database/prisma";
+import type {
   Person,
   CreatePersonRequest,
   UpdatePersonRequest,
   Gender,
 } from "@/shared/types/person.types";
-import { ParentType, RelationshipType } from "@prisma/client";
-import prisma from "@/shared/database/prisma";
+
+function trimToNullString(value: string | null | undefined, max: number): string | null {
+  if (value == null) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  if (trimmed === "") {
+    return null;
+  }
+  return trimmed.length > max ? trimmed.slice(0, max) : trimmed;
+}
 
 export interface PersonFilters {
   name?: string;
@@ -102,11 +114,18 @@ class PersonRepository {
   }
 
   async create(personData: CreatePersonRequest): Promise<Person> {
+    const { name, gender, birthDate, deathDate, bio, profilePictureUrl, phoneNumber, address } =
+      personData;
     return await prisma.person.create({
       data: {
-        ...personData,
-        birthDate: personData.birthDate ? new Date(personData.birthDate) : null,
-        deathDate: personData.deathDate ? new Date(personData.deathDate) : null,
+        name,
+        gender,
+        bio: bio ?? null,
+        profilePictureUrl: profilePictureUrl ?? null,
+        birthDate: birthDate ? new Date(birthDate) : null,
+        deathDate: deathDate ? new Date(deathDate) : null,
+        phoneNumber: trimToNullString(phoneNumber, 50),
+        address: trimToNullString(address, 2000),
       },
     });
   }
@@ -170,18 +189,30 @@ class PersonRepository {
 
   async createMany(datas: CreatePersonRequest[]): Promise<Person[]> {
     return await prisma.$transaction(
-      datas.map((person) =>
-        prisma.person.create({
+      datas.map((person) => {
+        const {
+          name,
+          gender,
+          birthDate,
+          deathDate,
+          bio,
+          profilePictureUrl,
+          phoneNumber,
+          address,
+        } = person;
+        return prisma.person.create({
           data: {
-            name: person.name,
-            gender: person.gender,
-            birthDate: person.birthDate ? new Date(person.birthDate) : null,
-            deathDate: person.deathDate ? new Date(person.deathDate) : null,
-            bio: person.bio ?? null,
-            profilePictureUrl: person.profilePictureUrl ?? null,
+            name,
+            gender,
+            bio: bio ?? null,
+            profilePictureUrl: profilePictureUrl ?? null,
+            birthDate: birthDate ? new Date(birthDate) : null,
+            deathDate: deathDate ? new Date(deathDate) : null,
+            phoneNumber: trimToNullString(phoneNumber, 50),
+            address: trimToNullString(address, 2000),
           },
-        })
-      )
+        });
+      })
     );
   }
 
@@ -202,6 +233,12 @@ class PersonRepository {
         updateData.deathDate = personData.deathDate
           ? new Date(personData.deathDate)
           : null;
+      }
+      if (personData.phoneNumber !== undefined) {
+        updateData.phoneNumber = trimToNullString(personData.phoneNumber, 50);
+      }
+      if (personData.address !== undefined) {
+        updateData.address = trimToNullString(personData.address, 2000);
       }
 
       return await prisma.person.update({

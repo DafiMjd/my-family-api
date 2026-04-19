@@ -327,6 +327,17 @@ class FamilyTreeRepository {
 
     if (!father || !mother) return null;
 
+    const trimContact = (v: string | null | undefined, max: number): string | null => {
+      if (v == null) {
+        return null;
+      }
+      const t = String(v).trim();
+      if (t === "") {
+        return null;
+      }
+      return t.length > max ? t.slice(0, max) : t;
+    };
+
     const result = await prisma.$transaction(async (tx) => {
       const out: FamilyTreePerson[] = [];
 
@@ -374,6 +385,8 @@ class FamilyTreeRepository {
               deathDate: np.deathDate ? new Date(np.deathDate) : null,
               bio: np.bio ?? null,
               profilePictureUrl: np.profilePictureUrl ?? null,
+              phoneNumber: trimContact(np.phoneNumber ?? null, 50),
+              address: trimContact(np.address ?? null, 2000),
               childOf: {
                 create: [
                   {

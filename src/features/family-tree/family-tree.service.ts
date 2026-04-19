@@ -233,6 +233,8 @@ class FamilyTreeService {
       deathDate: person.deathDate ? person.deathDate.toISOString() : null,
       bio: person.bio,
       profilePictureUrl: person.profilePictureUrl,
+      phoneNumber: person.phoneNumber,
+      address: person.address,
       createdAt: person.createdAt.toISOString(),
       updatedAt: person.updatedAt.toISOString(),
     };
@@ -255,6 +257,8 @@ class FamilyTreeService {
       deathDate: person.deathDate ? person.deathDate.toISOString() : null,
       bio: person.bio,
       profilePictureUrl: person.profilePictureUrl,
+      phoneNumber: person.phoneNumber,
+      address: person.address,
       createdAt: person.createdAt.toISOString(),
       updatedAt: person.updatedAt.toISOString(),
     };

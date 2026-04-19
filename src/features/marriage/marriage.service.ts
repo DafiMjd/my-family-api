@@ -304,6 +304,8 @@ class MarriageService {
       deathDate: person.deathDate ? person.deathDate.toISOString() : null,
       bio: person.bio,
       profilePictureUrl: person.profilePictureUrl,
+      phoneNumber: person.phoneNumber ?? null,
+      address: person.address ?? null,
       createdAt: person.createdAt.toISOString(),
       updatedAt: person.updatedAt.toISOString(),
     };

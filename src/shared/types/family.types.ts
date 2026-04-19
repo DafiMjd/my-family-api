@@ -28,6 +28,8 @@ export type FamilyWithMembers = Family & {
       deathDate: Date | null;
       bio: string | null;
       profilePictureUrl: string | null;
+      phoneNumber: string | null;
+      address: string | null;
     };
   }>;
 };
@@ -73,6 +75,9 @@ export interface CreateFamilyRequest {
 
 export interface UpdateFamilyChildrenRequest {
   childrenIds: string[];
+  /** Accepted for API parity; not applied when only updating member links. */
+  phoneNumber?: string | null;
+  address?: string | null;
 }
 
 export interface UpdateFamilyFatherRequest {
@@ -108,6 +113,8 @@ export interface FamilyResponse {
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
+    phoneNumber: string | null;
+    address: string | null;
   } | null;
   mother: {
     id: string;
@@ -117,6 +124,8 @@ export interface FamilyResponse {
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
+    phoneNumber: string | null;
+    address: string | null;
   } | null;
   children: Array<{
     id: string;
@@ -126,6 +135,8 @@ export interface FamilyResponse {
     deathDate: Date | null;
     bio: string | null;
     profilePictureUrl: string | null;
+    phoneNumber: string | null;
+    address: string | null;
     /** Reserved for future use; always null when creating via POST /api/family/one. */
     spouse: {
       id: string;
@@ -135,6 +146,8 @@ export interface FamilyResponse {
       deathDate: Date | null;
       bio: string | null;
       profilePictureUrl: string | null;
+      phoneNumber: string | null;
+      address: string | null;
     } | null;
   }>;
   createdAt: string;

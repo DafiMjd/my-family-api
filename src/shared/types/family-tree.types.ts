@@ -8,6 +8,8 @@ export type FamilyTreePerson = {
   deathDate: Date | null;
   bio: string | null;
   profilePictureUrl: string | null;
+  phoneNumber: string | null;
+  address: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -67,6 +69,8 @@ export interface FamilyTreePersonResponse {
   deathDate: string | null;
   bio: string | null;
   profilePictureUrl: string | null;
+  phoneNumber: string | null;
+  address: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -127,6 +131,8 @@ export interface AddChildNewPersonInput {
   deathDate?: string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;
+  phoneNumber?: string | null;
+  address?: string | null;
 }
 
 /** Either link an existing person (must satisfy children-candidate rules) or create a new one. */

@@ -14,6 +14,17 @@ const profilePictureUrlValidation = body(
   .optional({ nullable: true })
   .isURL(HTTP_HTTPS_URL_OPTIONS);
 
+const createPhoneValidation = body("phoneNumber", "phoneNumber must be a string")
+  .optional({ nullable: true })
+  .isString()
+  .bail()
+  .isLength({ max: 50 });
+const createAddressValidation = body("address", "address must be a string")
+  .optional({ nullable: true })
+  .isString()
+  .bail()
+  .isLength({ max: 2000 });
+
 export const createPersonValidation = [
   //   query('gender').optional().isString().withMessage('Gender must be a string'),
 
@@ -27,6 +38,8 @@ export const createPersonValidation = [
     .optional({ nullable: true })
     .isDate(),
   profilePictureUrlValidation,
+  createPhoneValidation,
+  createAddressValidation,
   body("parent")
     .optional({ nullable: true })
     .isObject()
@@ -66,6 +79,16 @@ export const buildCreatePersonValidation = (
     )
       .optional({ nullable: true })
       .isURL(HTTP_HTTPS_URL_OPTIONS),
+    body(`${prefix}phoneNumber`, "phoneNumber must be a string")
+      .optional({ nullable: true })
+      .isString()
+      .bail()
+      .isLength({ max: 50 }),
+    body(`${prefix}address`, "address must be a string")
+      .optional({ nullable: true })
+      .isString()
+      .bail()
+      .isLength({ max: 2000 }),
   ];
 
 /**
@@ -111,6 +134,20 @@ export const buildCreatePersonValidationIfParentExists = (
       .optional({ nullable: true })
       .isURL(HTTP_HTTPS_URL_OPTIONS)
       .withMessage("profilePictureUrl must be a valid URL"),
+    body(`${fieldPrefix}phoneNumber`)
+      .if(whenPresent)
+      .optional({ nullable: true })
+      .isString()
+      .bail()
+      .isLength({ max: 50 })
+      .withMessage("phoneNumber must be a string of at most 50 characters"),
+    body(`${fieldPrefix}address`)
+      .if(whenPresent)
+      .optional({ nullable: true })
+      .isString()
+      .bail()
+      .isLength({ max: 2000 })
+      .withMessage("address must be a string of at most 2000 characters"),
   ];
 };
 
@@ -169,4 +206,6 @@ export const updatePersonValidation = [
     .optional({ nullable: true })
     .isDate(),
   profilePictureUrlValidation,
+  createPhoneValidation,
+  createAddressValidation,
 ];

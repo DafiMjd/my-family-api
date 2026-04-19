@@ -89,6 +89,20 @@ const createMarryParticipantValidation = (participantPath: "person1" | "person2"
     .optional({ nullable: true })
     .isURL(HTTP_HTTPS_URL_OPTIONS)
     .withMessage(`${participantPath}.newPerson.profilePictureUrl must be a valid URL`),
+  body(`${participantPath}.newPerson.phoneNumber`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .optional({ nullable: true })
+    .isString()
+    .bail()
+    .isLength({ max: 50 })
+    .withMessage(`${participantPath}.newPerson.phoneNumber must be a string of at most 50 characters`),
+  body(`${participantPath}.newPerson.address`)
+    .if(body(`${participantPath}.newPerson`).exists())
+    .optional({ nullable: true })
+    .isString()
+    .bail()
+    .isLength({ max: 2000 })
+    .withMessage(`${participantPath}.newPerson.address must be a string of at most 2000 characters`),
 ];
 
 export const marryCreateValidation = [

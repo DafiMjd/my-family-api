@@ -689,6 +689,8 @@ class FamilyService {
           deathDate: m.person.deathDate,
           bio: m.person.bio,
           profilePictureUrl: m.person.profilePictureUrl,
+          phoneNumber: m.person.phoneNumber,
+          address: m.person.address,
           spouse: spousePerson
             ? {
                 id: spousePerson.id,
@@ -698,6 +700,8 @@ class FamilyService {
                 deathDate: spousePerson.deathDate,
                 bio: spousePerson.bio,
                 profilePictureUrl: spousePerson.profilePictureUrl,
+                phoneNumber: spousePerson.phoneNumber,
+                address: spousePerson.address,
               }
             : null,
         };
@@ -716,6 +720,8 @@ class FamilyService {
             deathDate: father.person.deathDate,
             bio: father.person.bio,
             profilePictureUrl: father.person.profilePictureUrl,
+            phoneNumber: father.person.phoneNumber,
+            address: father.person.address,
           }
         : null,
       mother: mother
@@ -727,6 +733,8 @@ class FamilyService {
             deathDate: mother.person.deathDate,
             bio: mother.person.bio,
             profilePictureUrl: mother.person.profilePictureUrl,
+            phoneNumber: mother.person.phoneNumber,
+            address: mother.person.address,
           }
         : null,
       children,

@@ -1,17 +1,8 @@
-import { Gender } from '@prisma/client';
+import type { Person as PrismaPerson } from "@prisma/client";
+import { Gender } from "@prisma/client";
 
-// Define Person type based on the Prisma schema
-export type Person = {
-  id: string;
-  name: string;
-  gender: Gender;
-  birthDate: Date | null;
-  deathDate: Date | null;
-  bio: string | null;
-  profilePictureUrl: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+/** Person row — same shape as Prisma `Person` so repository results type-check after `prisma generate`. */
+export type Person = PrismaPerson;
 
 export { Gender };
 
@@ -31,6 +22,8 @@ export interface CreatePersonRequest {
   deathDate?: Date | string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;
+  phoneNumber?: string | null;
+  address?: string | null;
 }
 
 /** POST /api/person/one — person fields plus optional parent link. */
@@ -45,6 +38,8 @@ export interface UpdatePersonRequest {
   deathDate?: Date | string | null;
   bio?: string | null;
   profilePictureUrl?: string | null;
+  phoneNumber?: string | null;
+  address?: string | null;
 }
 
 export interface PersonResponse {
@@ -55,6 +50,8 @@ export interface PersonResponse {
   deathDate: string | null;
   bio: string | null;
   profilePictureUrl: string | null;
+  phoneNumber: string | null;
+  address: string | null;
   createdAt: string;
   updatedAt: string;
 }
