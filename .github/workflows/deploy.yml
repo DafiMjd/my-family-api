@@ -78,6 +78,7 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             set -e
+            mkdir -p /opt/fam/uploads/pending /opt/fam/uploads/permanent
             cd "${{ secrets.HOSTINGER_APP_PATH }}"
             echo "${{ secrets.HOSTINGER_GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.HOSTINGER_GHCR_USER }}" --password-stdin
             docker compose -f docker-compose.prod.yml pull api
